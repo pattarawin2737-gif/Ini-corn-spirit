@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+.wrangler/
+backup/
+backup_local.sql
+web_app_response*.html
+*.log
+

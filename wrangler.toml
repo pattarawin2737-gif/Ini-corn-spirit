@@ -1,0 +1,10 @@
+name = "spirit-app"
+pages_build_output_dir = "./public"
+
+[vars]
+# Custom environment variables if needed
+
+[[d1_databases]]
+binding = "DB"
+database_name = "spirit_db"
+database_id = "739db326-5a3b-442a-b26c-fe6f024b3f8f"

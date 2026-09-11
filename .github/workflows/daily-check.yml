@@ -1,0 +1,29 @@
+name: Daily Due Batches Alert
+
+on:
+  schedule:
+    # 01:00 UTC = 08:00 น. เวลาไทย (GMT+7) ของทุกวัน
+    - cron: '0 1 * * *'
+  workflow_dispatch: # รองรับการกดปุ่ม "Run workflow" สั่งตรวจเช็กด้วยตัวเองได้ตลอดเวลา
+
+jobs:
+  check-and-alert:
+    name: Check Due Batches & Send Telegram
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Due Batches Check API
+        run: |
+          echo "🚀 Starting daily check for due batches at $(date)..."
+          RESPONSE=$(curl -s -X POST "https://ini-corn-spirit.pages.dev/api/checkDueBatches")
+          echo "Response from API:"
+          echo "$RESPONSE"
+          
+          # Check if curl returned a valid JSON or error
+          if echo "$RESPONSE" | grep -q '"success":true'; then
+            echo "✅ Check completed successfully!"
+            NOTIFIED_COUNT=$(echo "$RESPONSE" | grep -o '"notifiedCount":[0-9]*' | cut -d':' -f2 || echo "0")
+            echo "📢 Batches notified today: $NOTIFIED_COUNT"
+          else
+            echo "⚠️ API returned an error or notification was skipped:"
+            echo "$RESPONSE"
+          fi

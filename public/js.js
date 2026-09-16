@@ -5826,9 +5826,9 @@ window.google = {
     document.getElementById('sensory-smoothness').value = smooth;
     document.getElementById('sensory-smooth-val').textContent = smooth;
 
-    const warmth = s.warmth || 3;
-    document.getElementById('sensory-warmth').value = warmth;
-    document.getElementById('sensory-warm-val').textContent = warmth;
+    const bitter = (s.bitterness !== undefined) ? s.bitterness : ((s.warmth !== undefined) ? s.warmth : 1);
+    document.getElementById('sensory-warmth').value = bitter;
+    document.getElementById('sensory-warm-val').textContent = bitter;
 
     // Finish & Decision
     document.getElementById('sensory-finish-length').value = s.finishLength || 'ปานกลาง (Medium Finish)';
@@ -5875,7 +5875,8 @@ window.google = {
       sweetness: parseInt(document.getElementById('sensory-sweetness').value) || 2,
       acidity: parseInt(document.getElementById('sensory-acidity').value) || 2,
       smoothness: parseInt(document.getElementById('sensory-smoothness').value) || 4,
-      warmth: parseInt(document.getElementById('sensory-warmth').value) || 3,
+      bitterness: parseInt(document.getElementById('sensory-warmth').value) || 1,
+      warmth: parseInt(document.getElementById('sensory-warmth').value) || 1,
       finishLength: document.getElementById('sensory-finish-length').value,
       qcDecision: document.getElementById('sensory-qc-decision').value,
       notes: document.getElementById('sensory-notes').value.trim(),

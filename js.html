@@ -3017,7 +3017,7 @@
                        value="${displaySalesVal !== '' ? Number(displaySalesVal) : ''}" 
                        placeholder="0.0" 
                        step="any" min="0"
-                       style="width: 110px; padding: 0.25rem 0.5rem; font-size: 0.85rem; text-align: right; border-radius: 6px; color: var(--color-cyan); font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18);"
+                       style="width: 110px; padding: 0.25rem 0.5rem; font-size: 0.85rem; text-align: right; border-radius: 6px; color: var(--color-cyan); font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); -moz-appearance: textfield; appearance: textfield;"
                        oninput="handleInlineSalesInput(this)"
                        onkeydown="if(event.key==='Enter'){event.preventDefault(); this.closest('.batch-item-card, .batch-card').querySelector('.inline-save-btn').click();}"
                        title="กรอกยอดขายคาดการณ์ แล้วกดปุ่มบันทึก">

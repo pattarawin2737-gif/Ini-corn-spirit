@@ -22,6 +22,7 @@
   };
   let loggedInUsername = null;
   let authMode = 'login';
+  let ingredientStockData = [];
 
   function formatDateTh(dateStr) {
     if (!dateStr) return '';
@@ -158,6 +159,9 @@
 
   function loadUserData() {
     showLoader('กำลังโหลดข้อมูลผู้ใช้...');
+    
+    // Preload ingredient stock data so it is immediately available for recipe price calculations
+    loadIngredientStockData();
     
     // 1. Get spreadsheet info
     google.script.run.withSuccessHandler(function(info) {
@@ -1529,6 +1533,145 @@
     }
   }
 
+  // --- STOCK & RECIPE INGREDIENTS PRICE SYNCHRONIZATION ---
+  function updateStockDatalist() {
+    const datalist = document.getElementById('stock-ingredients-datalist');
+    if (!datalist) return;
+    datalist.innerHTML = '';
+    if (ingredientStockData && Array.isArray(ingredientStockData)) {
+      ingredientStockData.forEach(item => {
+        if (item.Name) {
+          const opt = document.createElement('option');
+          opt.value = item.Name;
+          const unitPrice = parseFloat(item.Price) || 0;
+          opt.label = `${unitPrice.toFixed(1)} ฿/${item.Unit || 'กก.'}`;
+          datalist.appendChild(opt);
+        }
+      });
+    }
+  }
+
+  function findStockItem(name) {
+    if (!ingredientStockData || !Array.isArray(ingredientStockData) || !name) return null;
+    const clean = name.trim().toLowerCase();
+    if (!clean) return null;
+    const stripped = clean.replace(/^(วัตถุดิบหวาน:\s*|ผลไม้:\s*)/, '').trim();
+
+    // 1. Exact match
+    let found = ingredientStockData.find(s => {
+      const sName = (s.Name || '').trim().toLowerCase();
+      return sName === clean || (stripped && sName === stripped);
+    });
+    if (found) return found;
+
+    // 2. Substring match
+    found = ingredientStockData.find(s => {
+      const sName = (s.Name || '').trim().toLowerCase();
+      if (!sName) return false;
+      return clean.includes(sName) || sName.includes(clean) || (stripped && (stripped.includes(sName) || sName.includes(stripped)));
+    });
+    return found || null;
+  }
+
+  function convertStockPriceToUnit(stockPrice, stockUnit, targetUnit) {
+    if (!stockPrice || isNaN(stockPrice)) return 0;
+    const sUnit = (stockUnit || '').trim().toLowerCase();
+    const tUnit = (targetUnit || '').trim().toLowerCase();
+
+    const isKg = u => (u === 'kg' || u === 'กก.' || u === 'กิโลกรัม');
+    const isG = u => (u === 'g' || u === 'กรัม');
+    const isL = u => (u === 'l' || u === 'ลิตร');
+    const isMl = u => (u === 'ml' || u === 'มล.');
+
+    // Gram to Kg or vice versa
+    if (isKg(sUnit) && isG(tUnit)) {
+      return stockPrice / 1000.0;
+    }
+    if (isG(sUnit) && isKg(tUnit)) {
+      return stockPrice * 1000.0;
+    }
+
+    // Liter to ml or vice versa
+    if (isL(sUnit) && isMl(tUnit)) {
+      return stockPrice / 1000.0;
+    }
+    if (isMl(sUnit) && isL(tUnit)) {
+      return stockPrice * 1000.0;
+    }
+
+    return stockPrice;
+  }
+
+  function resolveIngredientPrice(name, qty, unit, defaultUnitPrice, fallbackPrice) {
+    const stockItem = findStockItem(name);
+    if (stockItem && parseFloat(stockItem.Price) > 0) {
+      const unitPrice = convertStockPriceToUnit(parseFloat(stockItem.Price), stockItem.Unit, unit);
+      const totalPrice = (qty || 0) * unitPrice;
+      return {
+        price: totalPrice,
+        unitPrice: unitPrice,
+        fromStock: true
+      };
+    }
+    const effUnitPrice = defaultUnitPrice || 0;
+    const totalPrice = (fallbackPrice !== undefined) ? fallbackPrice : ((qty || 0) * effUnitPrice);
+    return {
+      price: totalPrice,
+      unitPrice: effUnitPrice,
+      fromStock: false
+    };
+  }
+
+  function refreshProductionIngredientsPrices() {
+    // 1. Update auto rows
+    const autoRows = document.querySelectorAll('#ingredients-table tbody tr.auto-row');
+    if (loadedAutoIngredients && loadedAutoIngredients.length > 0) {
+      loadedAutoIngredients.forEach((item, index) => {
+        const stockItem = findStockItem(item.name);
+        if (stockItem && parseFloat(stockItem.Price) > 0) {
+          const unitPrice = convertStockPriceToUnit(parseFloat(stockItem.Price), stockItem.Unit, item.unit);
+          item.unitPrice = unitPrice;
+          item.price = (item.qty || 0) * unitPrice;
+          if (autoRows[index]) {
+            const priceInput = autoRows[index].querySelector('.auto-ingredient-price');
+            if (priceInput) priceInput.value = item.price.toFixed(1);
+          }
+        }
+      });
+    }
+
+    // 2. Update custom rows
+    const customRows = document.querySelectorAll('#ingredients-table tbody tr.custom-row');
+    if (customIngredients && customIngredients.length > 0) {
+      customIngredients.forEach((item, index) => {
+        const stockItem = findStockItem(item.name);
+        if (stockItem && parseFloat(stockItem.Price) > 0) {
+          const unitPrice = convertStockPriceToUnit(parseFloat(stockItem.Price), stockItem.Unit, item.unit);
+          item.unitPrice = unitPrice;
+          item.price = (item.qty || 0) * unitPrice;
+          if (customRows[index]) {
+            const priceInput = customRows[index].querySelector('.custom-ingredient-price');
+            if (priceInput) priceInput.value = item.price.toFixed(1);
+          }
+        }
+      });
+    }
+
+    sumTotalCosts();
+  }
+
+  function loadIngredientStockData(callback) {
+    if (!loggedInUsername) return;
+    google.script.run.withSuccessHandler(function(data) {
+      ingredientStockData = data || [];
+      updateStockDatalist();
+      refreshProductionIngredientsPrices();
+      if (callback && typeof callback === 'function') callback(ingredientStockData);
+    }).withFailureHandler(function(err) {
+      console.warn('Could not preload ingredient stock:', err);
+    }).getIngredientStock(loggedInUsername);
+  }
+
   // RECALCULATE & POPULATE INGREDIENTS TABLE
   function populateRecalculatedIngredients(data) {
     const fo = data.formula;
@@ -1544,38 +1687,54 @@
     } else {
       const lookpangMultiplier = (currentFormulaId === 1) ? 2 : 1;
       const finalLookpangQty = data.totalLookpang * lookpangMultiplier;
+      
+      const sodRes = resolveIngredientPrice('โซเดียมเมตาไบซัลไฟต์', data.totalSodium, 'กรัม', 90 / 1000, data.totalSodium / 1000 * 90);
+      const yeastQty = (currentFormulaId === 4 ? data.totalYeast * 2.5 : data.totalYeast);
+      const yeastRes = resolveIngredientPrice('ยีสต์', yeastQty, 'กรัม', 140 / 1000, yeastQty / 140);
+      const lpRes = resolveIngredientPrice('ลูกแป้ง', finalLookpangQty, 'กรัม', 120 / 1000, finalLookpangQty / 1000 * 120);
+      const enzRes = resolveIngredientPrice('เอนไซม์', data.totalEnzyme, 'ลิตร', 200, data.enzymeG * 100 / 500);
+
       defaults = [
-        { name: 'โซเดียมเมตาไบซัลไฟต์', qty: data.totalSodium, unit: 'กรัม', price: (data.totalSodium / 1000 * 90) },
-        { name: 'ยีสต์', qty: (currentFormulaId === 4 ? data.totalYeast * 2.5 : data.totalYeast), unit: 'กรัม', price: ((currentFormulaId === 4 ? data.totalYeast * 2.5 : data.totalYeast) / 140) },
-        { name: 'ลูกแป้ง', qty: finalLookpangQty, unit: 'กรัม', price: (finalLookpangQty / 1000 * 120) },
-        { name: 'เอนไซม์', qty: data.totalEnzyme, unit: 'ลิตร', price: (data.enzymeG * 100 / 500) }
+        { name: 'โซเดียมเมตาไบซัลไฟต์', qty: data.totalSodium, unit: 'กรัม', price: sodRes.price, unitPrice: sodRes.unitPrice },
+        { name: 'ยีสต์', qty: yeastQty, unit: 'กรัม', price: yeastRes.price, unitPrice: yeastRes.unitPrice },
+        { name: 'ลูกแป้ง', qty: finalLookpangQty, unit: 'กรัม', price: lpRes.price, unitPrice: lpRes.unitPrice },
+        { name: 'เอนไซม์', qty: data.totalEnzyme, unit: 'ลิตร', price: enzRes.price, unitPrice: enzRes.unitPrice }
       ];
 
       // Add formula specific items
       if (currentFormulaId === 1 || currentFormulaId === 2 || currentFormulaId === 3) {
-        defaults.push({ name: 'ข้าวเหนียว กข6', qty: fo.stickyRiceTotal || 0, unit: 'Kg', price: 0 });
-        defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: ((fo.plainRiceTotal || 0) * 18), unitPrice: 18 });
+        const stickyRes = resolveIngredientPrice('ข้าวเหนียว กข6', fo.stickyRiceTotal || 0, 'Kg', 0, 0);
+        const plainRes = resolveIngredientPrice('ข้าวหอมมะลิ', fo.plainRiceTotal || 0, 'Kg', 18, (fo.plainRiceTotal || 0) * 18);
+        defaults.push({ name: 'ข้าวเหนียว กข6', qty: fo.stickyRiceTotal || 0, unit: 'Kg', price: stickyRes.price, unitPrice: stickyRes.unitPrice });
+        defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: plainRes.price, unitPrice: plainRes.unitPrice });
       }
       
       if (currentFormulaId === 5) {
-        defaults.push({ name: 'ข้าวเหนียว กข6', qty: fo.stickyRiceTotal || 0, unit: 'Kg', price: 0 });
-        defaults.push({ name: 'ข้าวโพดหวาน', qty: fo.cornTotal || 0, unit: 'Kg', price: ((fo.cornTotal || 0) * 24), unitPrice: 24 });
-        defaults.push({ name: 'ข้าวโพดป๊อปคอร์น', qty: fo.cornTotal || 0, unit: 'Kg', price: ((fo.cornTotal || 0) * 48), unitPrice: 48 });
-        defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: ((fo.plainRiceTotal || 0) * 18), unitPrice: 18 });
+        const stickyRes = resolveIngredientPrice('ข้าวเหนียว กข6', fo.stickyRiceTotal || 0, 'Kg', 0, 0);
+        const sweetCornRes = resolveIngredientPrice('ข้าวโพดหวาน', fo.cornTotal || 0, 'Kg', 24, (fo.cornTotal || 0) * 24);
+        const popCornRes = resolveIngredientPrice('ข้าวโพดป๊อปคอร์น', fo.cornTotal || 0, 'Kg', 48, (fo.cornTotal || 0) * 48);
+        const plainRes = resolveIngredientPrice('ข้าวหอมมะลิ', fo.plainRiceTotal || 0, 'Kg', 18, (fo.plainRiceTotal || 0) * 18);
+        defaults.push({ name: 'ข้าวเหนียว กข6', qty: fo.stickyRiceTotal || 0, unit: 'Kg', price: stickyRes.price, unitPrice: stickyRes.unitPrice });
+        defaults.push({ name: 'ข้าวโพดหวาน', qty: fo.cornTotal || 0, unit: 'Kg', price: sweetCornRes.price, unitPrice: sweetCornRes.unitPrice });
+        defaults.push({ name: 'ข้าวโพดป๊อปคอร์น', qty: fo.cornTotal || 0, unit: 'Kg', price: popCornRes.price, unitPrice: popCornRes.unitPrice });
+        defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: plainRes.price, unitPrice: plainRes.unitPrice });
       }
 
       if (currentFormulaId === 2 || currentFormulaId === 3 || currentFormulaId === 4 || currentFormulaId === 5) {
-        defaults.push({ name: 'น้ำตาลทรายแดง', qty: fo.sugarTotal || 0, unit: 'Kg', price: ((fo.sugarTotal || 0) * 28), unitPrice: 28 });
+        const sugarRes = resolveIngredientPrice('น้ำตาลทรายแดง', fo.sugarTotal || 0, 'Kg', 28, (fo.sugarTotal || 0) * 28);
+        defaults.push({ name: 'น้ำตาลทรายแดง', qty: fo.sugarTotal || 0, unit: 'Kg', price: sugarRes.price, unitPrice: sugarRes.unitPrice });
       }
 
       if (currentFormulaId === 3 || currentFormulaId === 4) {
-        defaults.push({ name: 'น้ำผลไม้ (รวมกาก)', qty: fo.juiceTotal || 0, unit: 'ลิตร', price: 0 });
+        const juiceRes = resolveIngredientPrice('น้ำผลไม้ (รวมกาก)', fo.juiceTotal || 0, 'ลิตร', 0, 0);
+        defaults.push({ name: 'น้ำผลไม้ (รวมกาก)', qty: fo.juiceTotal || 0, unit: 'ลิตร', price: juiceRes.price, unitPrice: juiceRes.unitPrice });
         
         // Add sweeteners
         const sweetenersList = currentFormulaId === 3 ? f3Sweeteners : f4Sweeteners;
         sweetenersList.forEach(sw => {
           if (sw.name) {
-            defaults.push({ name: 'วัตถุดิบหวาน: ' + sw.name, qty: sw.liters || 0, unit: 'ลิตร', price: 0 });
+            const swRes = resolveIngredientPrice('วัตถุดิบหวาน: ' + sw.name, sw.liters || 0, 'ลิตร', 0, 0);
+            defaults.push({ name: 'วัตถุดิบหวาน: ' + sw.name, qty: sw.liters || 0, unit: 'ลิตร', price: swRes.price, unitPrice: swRes.unitPrice });
           }
         });
 
@@ -1583,7 +1742,8 @@
         const fruitsList = currentFormulaId === 3 ? f3Fruits : f4Fruits;
         fruitsList.forEach(fr => {
           if (fr.name) {
-            defaults.push({ name: 'ผลไม้: ' + fr.name, qty: fr.qtyTotal || 0, unit: 'Kg', price: 0 });
+            const frRes = resolveIngredientPrice('ผลไม้: ' + fr.name, fr.qtyTotal || 0, 'Kg', 0, 0);
+            defaults.push({ name: 'ผลไม้: ' + fr.name, qty: fr.qtyTotal || 0, unit: 'Kg', price: frRes.price, unitPrice: frRes.unitPrice });
           }
         });
       }
@@ -1602,7 +1762,7 @@
       tr.className = 'auto-row';
       tr.innerHTML = `
         <td>
-          <input type="text" class="input-control auto-ingredient-name" value="${item.name}" onchange="updateAutoIngredient(${index}, 'name', this.value)">
+          <input type="text" class="input-control auto-ingredient-name" list="stock-ingredients-datalist" value="${item.name}" onchange="updateAutoIngredient(${index}, 'name', this.value)">
         </td>
         <td>
           <input type="number" class="input-control auto-ingredient-qty" value="${item.qty.toFixed(1)}" step="0.1" oninput="updateAutoIngredient(${index}, 'qty', this.value); sumTotalCosts()">
@@ -1628,11 +1788,32 @@
 
   function updateAutoIngredient(index, field, value) {
     if (loadedAutoIngredients && loadedAutoIngredients[index]) {
-      if (field === 'qty') {
+      if (field === 'name') {
+        loadedAutoIngredients[index]['name'] = value;
+        const stockItem = findStockItem(value);
+        if (stockItem && parseFloat(stockItem.Price) > 0) {
+          const unitPrice = convertStockPriceToUnit(parseFloat(stockItem.Price), stockItem.Unit, loadedAutoIngredients[index].unit);
+          loadedAutoIngredients[index].unitPrice = unitPrice;
+          const newPrice = (loadedAutoIngredients[index].qty || 0) * unitPrice;
+          loadedAutoIngredients[index].price = newPrice;
+          const rows = document.querySelectorAll('#ingredients-table tbody tr.auto-row');
+          if (rows[index]) {
+            const priceInput = rows[index].querySelector('.auto-ingredient-price');
+            if (priceInput) priceInput.value = newPrice.toFixed(1);
+          }
+          sumTotalCosts();
+        }
+      } else if (field === 'qty') {
         const qtyVal = parseFloat(value) || 0;
         loadedAutoIngredients[index]['qty'] = qtyVal;
-        if (loadedAutoIngredients[index].unitPrice !== undefined && loadedAutoIngredients[index].unitPrice !== null) {
-          const newPrice = qtyVal * loadedAutoIngredients[index].unitPrice;
+        let unitPrice = loadedAutoIngredients[index].unitPrice;
+        const stockItem = findStockItem(loadedAutoIngredients[index].name);
+        if (stockItem && parseFloat(stockItem.Price) > 0) {
+          unitPrice = convertStockPriceToUnit(parseFloat(stockItem.Price), stockItem.Unit, loadedAutoIngredients[index].unit);
+          loadedAutoIngredients[index].unitPrice = unitPrice;
+        }
+        if (unitPrice !== undefined && unitPrice !== null && unitPrice > 0) {
+          const newPrice = qtyVal * unitPrice;
           loadedAutoIngredients[index].price = newPrice;
           const rows = document.querySelectorAll('#ingredients-table tbody tr.auto-row');
           if (rows[index]) {
@@ -1640,10 +1821,23 @@
             if (priceInput) priceInput.value = newPrice.toFixed(1);
           }
         }
+      } else if (field === 'unit') {
+        loadedAutoIngredients[index]['unit'] = value;
+        const stockItem = findStockItem(loadedAutoIngredients[index].name);
+        if (stockItem && parseFloat(stockItem.Price) > 0) {
+          const unitPrice = convertStockPriceToUnit(parseFloat(stockItem.Price), stockItem.Unit, value);
+          loadedAutoIngredients[index].unitPrice = unitPrice;
+          const newPrice = (loadedAutoIngredients[index].qty || 0) * unitPrice;
+          loadedAutoIngredients[index].price = newPrice;
+          const rows = document.querySelectorAll('#ingredients-table tbody tr.auto-row');
+          if (rows[index]) {
+            const priceInput = rows[index].querySelector('.auto-ingredient-price');
+            if (priceInput) priceInput.value = newPrice.toFixed(1);
+          }
+          sumTotalCosts();
+        }
       } else if (field === 'price') {
         loadedAutoIngredients[index]['price'] = parseFloat(value) || 0;
-      } else {
-        loadedAutoIngredients[index][field] = value;
       }
     }
   }
@@ -1676,12 +1870,12 @@
       tr.className = 'custom-row';
       tr.innerHTML = `
         <td>
-          <input type="text" class="input-control custom-ingredient-name" value="${item.name || ''}" 
+          <input type="text" class="input-control custom-ingredient-name" list="stock-ingredients-datalist" value="${item.name || ''}" 
                  placeholder="ระบุชื่อวัตถุดิบ..." onchange="updateCustomIngredient(${index}, 'name', this.value)">
         </td>
         <td>
           <input type="number" class="input-control custom-ingredient-qty" value="${Number(item.qty || 0).toFixed(1)}" step="0.1"
-                 onchange="updateCustomIngredient(${index}, 'qty', this.value); sumTotalCosts();">
+                 oninput="updateCustomIngredient(${index}, 'qty', this.value); sumTotalCosts();">
         </td>
         <td>
           <input type="text" class="input-control custom-ingredient-unit" value="${item.unit || 'Kg'}"
@@ -1689,7 +1883,7 @@
         </td>
         <td>
           <input type="number" class="input-control custom-ingredient-price" value="${Number(item.price || 0).toFixed(1)}" step="0.1"
-                 onchange="updateCustomIngredient(${index}, 'price', this.value); sumTotalCosts();">
+                 oninput="updateCustomIngredient(${index}, 'price', this.value); sumTotalCosts();">
         </td>
         <td style="text-align: center;">
           <button class="btn btn-danger btn-sm" type="button" onclick="removeCustomIngredient(${index})">ลบ</button>
@@ -1702,10 +1896,67 @@
   }
 
   function updateCustomIngredient(index, field, value) {
-    if (field === 'qty' || field === 'price') {
-      customIngredients[index][field] = parseFloat(value) || 0;
-    } else {
-      customIngredients[index][field] = value;
+    if (!customIngredients[index]) return;
+    if (field === 'name') {
+      customIngredients[index]['name'] = value;
+      const stockItem = findStockItem(value);
+      if (stockItem) {
+        if (stockItem.Unit) {
+          customIngredients[index]['unit'] = stockItem.Unit;
+          const rows = document.querySelectorAll('#ingredients-table tbody tr.custom-row');
+          if (rows[index]) {
+            const unitInput = rows[index].querySelector('.custom-ingredient-unit');
+            if (unitInput) unitInput.value = stockItem.Unit;
+          }
+        }
+        if (parseFloat(stockItem.Price) > 0) {
+          const unitPrice = convertStockPriceToUnit(parseFloat(stockItem.Price), stockItem.Unit, customIngredients[index].unit);
+          customIngredients[index].unitPrice = unitPrice;
+          const newPrice = (customIngredients[index].qty || 0) * unitPrice;
+          customIngredients[index].price = newPrice;
+          const rows = document.querySelectorAll('#ingredients-table tbody tr.custom-row');
+          if (rows[index]) {
+            const priceInput = rows[index].querySelector('.custom-ingredient-price');
+            if (priceInput) priceInput.value = newPrice.toFixed(1);
+          }
+          sumTotalCosts();
+        }
+      }
+    } else if (field === 'qty') {
+      const qtyVal = parseFloat(value) || 0;
+      customIngredients[index]['qty'] = qtyVal;
+      let unitPrice = customIngredients[index].unitPrice;
+      const stockItem = findStockItem(customIngredients[index].name);
+      if (stockItem && parseFloat(stockItem.Price) > 0) {
+        unitPrice = convertStockPriceToUnit(parseFloat(stockItem.Price), stockItem.Unit, customIngredients[index].unit);
+        customIngredients[index].unitPrice = unitPrice;
+      }
+      if (unitPrice !== undefined && unitPrice !== null && unitPrice > 0) {
+        const newPrice = qtyVal * unitPrice;
+        customIngredients[index].price = newPrice;
+        const rows = document.querySelectorAll('#ingredients-table tbody tr.custom-row');
+        if (rows[index]) {
+          const priceInput = rows[index].querySelector('.custom-ingredient-price');
+          if (priceInput) priceInput.value = newPrice.toFixed(1);
+        }
+      }
+    } else if (field === 'unit') {
+      customIngredients[index]['unit'] = value;
+      const stockItem = findStockItem(customIngredients[index].name);
+      if (stockItem && parseFloat(stockItem.Price) > 0) {
+        const unitPrice = convertStockPriceToUnit(parseFloat(stockItem.Price), stockItem.Unit, value);
+        customIngredients[index].unitPrice = unitPrice;
+        const newPrice = (customIngredients[index].qty || 0) * unitPrice;
+        customIngredients[index].price = newPrice;
+        const rows = document.querySelectorAll('#ingredients-table tbody tr.custom-row');
+        if (rows[index]) {
+          const priceInput = rows[index].querySelector('.custom-ingredient-price');
+          if (priceInput) priceInput.value = newPrice.toFixed(1);
+        }
+        sumTotalCosts();
+      }
+    } else if (field === 'price') {
+      customIngredients[index]['price'] = parseFloat(value) || 0;
     }
   }
 
@@ -3416,7 +3667,6 @@
   }
 
   // --- INGREDIENT STOCK MANAGEMENT ---
-  let ingredientStockData = [];
   let editingIngredientId = null;
 
   function renderIngredientStock() {
@@ -3427,6 +3677,8 @@
       hideLoader();
       ingredientStockData = data || [];
       displayIngredientStock(ingredientStockData);
+      updateStockDatalist();
+      refreshProductionIngredientsPrices();
     }).withFailureHandler(function(err) {
       hideLoader();
       showToast('ไม่สามารถโหลดข้อมูลสต๊อกวัตถุดิบได้: ' + err.toString(), 'danger');
@@ -3739,6 +3991,15 @@
       if (res.success) {
         closeIngredientModal();
         showToast('บันทึกข้อมูลวัตถุดิบสำเร็จ', 'success');
+        const savedId = editingIngredientId || (res.item && res.item.ID);
+        const existingIdx = ingredientStockData.findIndex(i => i.ID === savedId);
+        if (existingIdx >= 0) {
+          ingredientStockData[existingIdx] = { ...ingredientStockData[existingIdx], ...item, ID: savedId };
+        } else {
+          ingredientStockData.push({ ...item, ID: savedId });
+        }
+        updateStockDatalist();
+        refreshProductionIngredientsPrices();
         renderIngredientStock();
       } else {
         alert('เกิดข้อผิดพลาด: ' + res.error);
@@ -3800,6 +4061,9 @@
         hideLoader();
         if (res.success) {
           showToast('ลบข้อมูลวัตถุดิบเรียบร้อย', 'success');
+          ingredientStockData = ingredientStockData.filter(i => i.ID !== id);
+          updateStockDatalist();
+          refreshProductionIngredientsPrices();
           renderIngredientStock();
         } else {
           alert('เกิดข้อผิดพลาด: ' + res.error);

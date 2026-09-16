@@ -2286,28 +2286,28 @@
 
             </div>
 
-            <!-- Fermentation & Distillation Measurements (Fillable) -->
-            <div style="margin-top: 0.85rem; border: 1.5px solid #000; border-radius: 6px; padding: 0.55rem 0.65rem; background: #fafafa;">
+            <!-- Fermentation & Distillation Measurements (For handwriting) -->
+            <div style="margin-top: 0.85rem; border: 1.5px solid #000; border-radius: 6px; padding: 0.6rem 0.75rem; background: #fafafa;">
               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; font-size: 0.8rem;">
                 <div>
-                  <span style="color: #333; font-size: 0.75rem; font-weight: 700; display: block; margin-bottom: 0.25rem;">ความหวานก่อนหมัก:</span>
-                  <div style="display: flex; align-items: baseline; gap: 0.2rem;">
-                    <input type="text" id="tag-brix-before" class="tag-input-field" placeholder="...................." style="width: 100%; border: none; border-bottom: 1.5px dotted #000; background: transparent; font-weight: 700; font-size: 0.95rem; text-align: center; color: #000; outline: none; padding: 0;">
-                    <span style="font-size: 0.75rem; color: #555; font-weight: 600;">Bx</span>
+                  <span style="color: #111; font-size: 0.75rem; font-weight: 700; display: block; margin-bottom: 0.35rem;">ความหวานก่อนหมัก:</span>
+                  <div style="display: flex; align-items: flex-end; gap: 0.25rem;">
+                    <span style="display: inline-block; flex: 1; border-bottom: 1.5px dotted #333; min-height: 1.4rem;"></span>
+                    <span style="font-size: 0.75rem; color: #444; font-weight: 600;">Bx</span>
                   </div>
                 </div>
                 <div>
-                  <span style="color: #333; font-size: 0.75rem; font-weight: 700; display: block; margin-bottom: 0.25rem;">ความหวานหลังหมัก:</span>
-                  <div style="display: flex; align-items: baseline; gap: 0.2rem;">
-                    <input type="text" id="tag-brix-after" class="tag-input-field" placeholder="...................." style="width: 100%; border: none; border-bottom: 1.5px dotted #000; background: transparent; font-weight: 700; font-size: 0.95rem; text-align: center; color: #000; outline: none; padding: 0;">
-                    <span style="font-size: 0.75rem; color: #555; font-weight: 600;">Bx</span>
+                  <span style="color: #111; font-size: 0.75rem; font-weight: 700; display: block; margin-bottom: 0.35rem;">ความหวานหลังหมัก:</span>
+                  <div style="display: flex; align-items: flex-end; gap: 0.25rem;">
+                    <span style="display: inline-block; flex: 1; border-bottom: 1.5px dotted #333; min-height: 1.4rem;"></span>
+                    <span style="font-size: 0.75rem; color: #444; font-weight: 600;">Bx</span>
                   </div>
                 </div>
                 <div>
-                  <span style="color: #333; font-size: 0.75rem; font-weight: 700; display: block; margin-bottom: 0.25rem;">สุราที่ได้:</span>
-                  <div style="display: flex; align-items: baseline; gap: 0.2rem;">
-                    <input type="text" id="tag-distill-vol" class="tag-input-field" placeholder="...................." style="width: 100%; border: none; border-bottom: 1.5px dotted #000; background: transparent; font-weight: 700; font-size: 0.95rem; text-align: center; color: #000; outline: none; padding: 0;">
-                    <span style="font-size: 0.75rem; color: #555; font-weight: 600;">ลิตร</span>
+                  <span style="color: #111; font-size: 0.75rem; font-weight: 700; display: block; margin-bottom: 0.35rem;">สุราที่ได้:</span>
+                  <div style="display: flex; align-items: flex-end; gap: 0.25rem;">
+                    <span style="display: inline-block; flex: 1; border-bottom: 1.5px dotted #333; min-height: 1.4rem;"></span>
+                    <span style="font-size: 0.75rem; color: #444; font-weight: 600;">ลิตร</span>
                   </div>
                 </div>
               </div>
@@ -2408,9 +2408,6 @@
           <!-- Action Buttons -->
           <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
             <button class="btn btn-secondary" onclick="closeTankTagModal()">ปิด</button>
-            <button class="btn btn-success" onclick="saveTankTagValues()" style="font-weight: 600; display: flex; align-items: center; gap: 0.4rem; background: #059669; border-color: #059669;">
-              <span>💾</span> บันทึกค่าที่กรอก
-            </button>
             <button class="btn btn-primary" onclick="printTankTag()" style="font-weight: 600; display: flex; align-items: center; gap: 0.4rem;">
               <span>🖨️</span> พิมพ์ป้ายแท็ก (Print)
             </button>

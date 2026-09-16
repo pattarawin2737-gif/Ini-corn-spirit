@@ -5114,7 +5114,8 @@ window.google = {
       const targetDeg = raw.adjTargetDeg || (raw.formulaInputs && raw.formulaInputs.f1TargetDegree) || 40;
       if (tagTargetEl) tagTargetEl.textContent = `${targetDeg}° (${raw.distillVolReal || 0} ลิตร)`;
     }
-    document.getElementById('tag-batch-formula').textContent = formulaName;
+    const formulaTagEl = document.getElementById('tag-batch-formula');
+    if (formulaTagEl) formulaTagEl.textContent = formulaName;
 
     // Progress
     let progressTxt = `สถานะ: ${batch.Status}`;

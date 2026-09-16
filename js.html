@@ -5207,33 +5207,92 @@
       mainWaterTotal = mainWaterPerTank * tanks;
     }
 
-    // Override from autoIngredients if saved
+    // Gather all saved ingredients from the batch's "รายละเอียดวัตถุดิบและต้นทุนการผลิตหลัก" table
+    const savedIngredients = [];
     if (raw.autoIngredients && Array.isArray(raw.autoIngredients)) {
-      const aSod = raw.autoIngredients.find(i => i.name && i.name.includes('โซเดียม'));
-      if (aSod && parseFloat(aSod.qty) > 0) {
-        totalSodium = parseFloat(aSod.qty);
-        sodiumPerTank = totalSodium / tanks;
+      savedIngredients.push(...raw.autoIngredients);
+    }
+    if (raw.customIngredients && Array.isArray(raw.customIngredients)) {
+      savedIngredients.push(...raw.customIngredients);
+    }
+
+    const matchedSavedNames = new Set();
+
+    // 1. Check if sodium, yeast, lookpang, enzyme, sugar were saved in the table
+    const aSod = savedIngredients.find(i => i.name && i.name.includes('โซเดียม'));
+    if (aSod && parseFloat(aSod.qty) > 0) {
+      matchedSavedNames.add(aSod.name);
+      totalSodium = parseFloat(aSod.qty);
+      sodiumPerTank = totalSodium / tanks;
+    }
+    const aYeast = savedIngredients.find(i => i.name && i.name === 'ยีสต์');
+    if (aYeast && parseFloat(aYeast.qty) > 0) {
+      matchedSavedNames.add(aYeast.name);
+      totalYeast = parseFloat(aYeast.qty);
+      yeastPerTank = totalYeast / tanks;
+    }
+    const aLp = savedIngredients.find(i => i.name && i.name.includes('ลูกแป้ง'));
+    if (aLp && parseFloat(aLp.qty) > 0) {
+      matchedSavedNames.add(aLp.name);
+      totalLookpang = parseFloat(aLp.qty);
+      lookpangPerTank = totalLookpang / tanks;
+    }
+    const aEnz = savedIngredients.find(i => i.name && i.name === 'เอนไซม์');
+    if (aEnz && parseFloat(aEnz.qty) > 0) {
+      matchedSavedNames.add(aEnz.name);
+      totalEnzyme = parseFloat(aEnz.qty);
+      enzymePerTank = totalEnzyme / tanks;
+    }
+    const aSugar = savedIngredients.find(i => i.name && i.name.includes('น้ำตาล'));
+    if (aSugar && parseFloat(aSugar.qty) > 0) {
+      matchedSavedNames.add(aSugar.name);
+      sugarTotal = parseFloat(aSugar.qty);
+      sugarPerTank = sugarTotal / tanks;
+    }
+
+    // 2. Extract Raw Rice items from saved ingredients (e.g. ข้าวเหนียว กข6, ข้าวหอมมะลิ)
+    const rawRiceItems = [];
+    savedIngredients.forEach(item => {
+      const q = parseFloat(item.qty) || 0;
+      const n = (item.name || '').trim();
+      if (q > 0.001 && n.includes('ข้าว') && !n.includes('ข้าวโพด') && !n.includes('ข้าวสุก')) {
+        matchedSavedNames.add(n);
+        const perT = q / tanks;
+        const label = n.startsWith('ข้าวดิบ') ? n : `ข้าวดิบ (${n})`;
+        rawRiceItems.push({ name: label, perTank: perT, total: q, unit: item.unit || 'Kg' });
       }
-      const aYeast = raw.autoIngredients.find(i => i.name && i.name === 'ยีสต์');
-      if (aYeast && parseFloat(aYeast.qty) > 0) {
-        totalYeast = parseFloat(aYeast.qty);
-        yeastPerTank = totalYeast / tanks;
+    });
+
+    // Fallback if no saved rice items found in table, compute from formula calculation
+    if (rawRiceItems.length === 0) {
+      if (fNum === 1 || fNum === 2 || fNum === 3 || fNum === 5) {
+        const stickyQ = (cookedRiceTotal / 1.53);
+        const plainQ = (cookedRiceTotal / 3);
+        if (stickyQ > 0.001) {
+          rawRiceItems.push({ name: 'ข้าวดิบ (ข้าวเหนียว กข6)', perTank: stickyQ / tanks, total: stickyQ, unit: 'Kg' });
+        }
+        if (plainQ > 0.001) {
+          rawRiceItems.push({ name: 'ข้าวดิบ (ข้าวหอมมะลิ)', perTank: plainQ / tanks, total: plainQ, unit: 'Kg' });
+        }
+      } else if (rawRiceTotal > 0.001) {
+        rawRiceItems.push({ name: 'ข้าวดิบ', perTank: rawRicePerTank, total: rawRiceTotal, unit: 'Kg' });
       }
-      const aLp = raw.autoIngredients.find(i => i.name && i.name.includes('ลูกแป้ง'));
-      if (aLp && parseFloat(aLp.qty) > 0) {
-        totalLookpang = parseFloat(aLp.qty);
-        lookpangPerTank = totalLookpang / tanks;
+    }
+
+    // 3. Extract Raw Corn items from saved ingredients
+    const rawCornItems = [];
+    savedIngredients.forEach(item => {
+      const q = parseFloat(item.qty) || 0;
+      const n = (item.name || '').trim();
+      if (q > 0.001 && n.includes('ข้าวโพด') && !n.includes('ข้าวโพดสุก')) {
+        matchedSavedNames.add(n);
+        const perT = q / tanks;
+        const label = n.startsWith('ข้าวโพดดิบ') ? n : (n === 'ข้าวโพด' ? 'ข้าวโพดดิบ' : `ข้าวโพดดิบ (${n})`);
+        rawCornItems.push({ name: label, perTank: perT, total: q, unit: item.unit || 'Kg' });
       }
-      const aEnz = raw.autoIngredients.find(i => i.name && i.name === 'เอนไซม์');
-      if (aEnz && parseFloat(aEnz.qty) > 0) {
-        totalEnzyme = parseFloat(aEnz.qty);
-        enzymePerTank = totalEnzyme / tanks;
-      }
-      const aSugar = raw.autoIngredients.find(i => i.name && i.name.includes('น้ำตาล'));
-      if (aSugar && parseFloat(aSugar.qty) > 0) {
-        sugarTotal = parseFloat(aSugar.qty);
-        sugarPerTank = sugarTotal / tanks;
-      }
+    });
+    if (rawCornItems.length === 0 && rawCornTotal > 0.001) {
+      rawCornItems.push({ name: 'ข้าวโพดดิบ', perTank: rawCornPerTank, total: rawCornTotal, unit: 'Kg' });
     }
 
     // Enzyme prep calculations
@@ -5250,44 +5309,71 @@
 
     if (mainBody) {
       mainBody.innerHTML = '';
-      const mainItems = [
-        { name: 'โซเดียมเมตาไบซัลไฟต์', perTank: sodiumPerTank, total: totalSodium, unit: 'กรัม' },
-        { name: 'ปริมาณน้ำที่ใช้', perTank: mainWaterPerTank, total: mainWaterTotal, unit: 'ลิตร' },
-        { name: 'ข้าวดิบ', perTank: rawRicePerTank, total: rawRiceTotal, unit: 'Kg' },
-        { name: 'ข้าวสุก', perTank: cookedRicePerTank, total: cookedRiceTotal, unit: 'Kg' },
-        { name: 'ข้าวโพดดิบ', perTank: rawCornPerTank, total: rawCornTotal, unit: 'Kg' },
-        { name: 'ข้าวโพดสุก', perTank: cookedCornPerTank, total: cookedCornTotal, unit: 'Kg' },
-        { name: 'น้ำตาลทรายแดง', perTank: sugarPerTank, total: sugarTotal, unit: 'Kg' },
-        { name: 'ลูกแป้ง', perTank: lookpangPerTank, total: totalLookpang, unit: 'กรัม' },
-        { name: 'ยีสต์', perTank: yeastPerTank, total: totalYeast, unit: 'กรัม' },
-        { name: 'เอนไซม์', perTank: enzymePerTank, total: totalEnzyme, unit: 'ลิตร' }
-      ];
+      const mainItems = [];
 
-      // Filter only items where total > 0
-      const validMain = mainItems.filter(item => item.total > 0.001);
-
-      // Append custom ingredients from autoIngredients if present and not duplicated
-      if (raw.autoIngredients && Array.isArray(raw.autoIngredients)) {
-        raw.autoIngredients.forEach(item => {
-          const q = parseFloat(item.qty) || 0;
-          if (q > 0.001 && item.name) {
-            const already = mainItems.some(m => m.name === item.name || (item.name.includes('โซเดียม') && m.name.includes('โซเดียม')) || (item.name.includes('ลูกแป้ง') && m.name.includes('ลูกแป้ง')) || (item.name === 'ยีสต์' && m.name === 'ยีสต์') || (item.name === 'เอนไซม์' && m.name === 'เอนไซม์') || (item.name.includes('น้ำตาล') && m.name.includes('น้ำตาล')) || (item.name.includes('ข้าวเหนียว') && m.name.includes('ข้าว')) || (item.name.includes('ข้าวหอม') && m.name.includes('ข้าว')) || (item.name.includes('ข้าวโพด') && m.name.includes('ข้าวโพด')));
-            if (!already) {
-              const perT = q / tanks;
-              validMain.push({ name: item.name, perTank: perT, total: q, unit: item.unit || '' });
-            }
-          }
-        });
+      // 1. โซเดียมเมตาไบซัลไฟต์
+      if (totalSodium > 0.001) {
+        mainItems.push({ name: 'โซเดียมเมตาไบซัลไฟต์', perTank: sodiumPerTank, total: totalSodium, unit: 'กรัม' });
       }
 
-      validMain.forEach(item => {
+      // 2. ปริมาณน้ำที่ใช้
+      if (mainWaterTotal > 0.001) {
+        mainItems.push({ name: 'ปริมาณน้ำที่ใช้', perTank: mainWaterPerTank, total: mainWaterTotal, unit: 'ลิตร' });
+      }
+
+      // 3. ข้าวดิบ (ระบุชนิดข้าวเหนียว กข6 / ข้าวหอมมะลิ ตรงกับตารางต้นทุนหลัก)
+      rawRiceItems.forEach(ri => mainItems.push(ri));
+
+      // 4. ข้าวสุก
+      if (cookedRiceTotal > 0.001) {
+        mainItems.push({ name: 'ข้าวสุก', perTank: cookedRicePerTank, total: cookedRiceTotal, unit: 'Kg' });
+      }
+
+      // 5. ข้าวโพดดิบ (ระบุชนิดข้าวโพด)
+      rawCornItems.forEach(ci => mainItems.push(ci));
+
+      // 6. ข้าวโพดสุก
+      if (cookedCornTotal > 0.001) {
+        mainItems.push({ name: 'ข้าวโพดสุก', perTank: cookedCornPerTank, total: cookedCornTotal, unit: 'Kg' });
+      }
+
+      // 7. น้ำตาลทรายแดง
+      if (sugarTotal > 0.001) {
+        mainItems.push({ name: 'น้ำตาลทรายแดง', perTank: sugarPerTank, total: sugarTotal, unit: 'Kg' });
+      }
+
+      // 8. ลูกแป้ง
+      if (totalLookpang > 0.001) {
+        mainItems.push({ name: 'ลูกแป้ง', perTank: lookpangPerTank, total: totalLookpang, unit: 'กรัม' });
+      }
+
+      // 9. ยีสต์
+      if (totalYeast > 0.001) {
+        mainItems.push({ name: 'ยีสต์', perTank: yeastPerTank, total: totalYeast, unit: 'กรัม' });
+      }
+
+      // 10. เอนไซม์
+      if (totalEnzyme > 0.001) {
+        mainItems.push({ name: 'เอนไซม์', perTank: enzymePerTank, total: totalEnzyme, unit: 'ลิตร' });
+      }
+
+      // 11. วัตถุดิบอื่นๆ เพิ่มเติมที่ไม่ได้ถูกจับคู่ก่อนหน้า
+      savedIngredients.forEach(item => {
+        const q = parseFloat(item.qty) || 0;
+        const n = (item.name || '').trim();
+        if (q > 0.001 && n && !matchedSavedNames.has(n)) {
+          mainItems.push({ name: n, perTank: q / tanks, total: q, unit: item.unit || '' });
+        }
+      });
+
+      mainItems.forEach(item => {
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid #eee';
         tr.innerHTML = `<td style="padding: 3px 4px; color: #444;">${item.name}:</td><td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;">${item.perTank.toFixed(1)} / ${item.total.toFixed(1)} ${item.unit}</td>`;
         mainBody.appendChild(tr);
       });
 
-      mainValidCount = validMain.length;
+      mainValidCount = mainItems.length;
       if (mainCol) mainCol.style.display = mainValidCount > 0 ? '' : 'none';
     }
 

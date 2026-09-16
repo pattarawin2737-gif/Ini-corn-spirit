@@ -5363,7 +5363,116 @@ window.google = {
   }
 
   function printTankTag() {
-    window.print();
+    const printableArea = document.getElementById('tank-tag-printable-area');
+    if (!printableArea) {
+      window.print();
+      return;
+    }
+
+    let iframe = document.getElementById('print-tag-iframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'print-tag-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      iframe.style.opacity = '0';
+      iframe.style.pointerEvents = 'none';
+      document.body.appendChild(iframe);
+    }
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tank Tag - INI CORN DISTILLERY</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .print-wrapper {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+  </style>
+</head>
+<body>
+  <div class="print-wrapper">
+    ${printableArea.outerHTML}
+  </div>
+</body>
+</html>`);
+    doc.close();
+
+    const triggerPrint = () => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch(e) {
+        window.print();
+      }
+    };
+
+    const images = iframe.contentWindow.document.querySelectorAll('img');
+    let loadedCount = 0;
+    const totalImages = images.length;
+
+    if (totalImages === 0) {
+      setTimeout(triggerPrint, 250);
+    } else {
+      let printed = false;
+      const done = () => {
+        loadedCount++;
+        if (loadedCount >= totalImages && !printed) {
+          printed = true;
+          setTimeout(triggerPrint, 150);
+        }
+      };
+      images.forEach(img => {
+        if (img.complete) {
+          done();
+        } else {
+          img.onload = done;
+          img.onerror = done;
+        }
+      });
+      setTimeout(() => {
+        if (!printed) {
+          printed = true;
+          triggerPrint();
+        }
+      }, 500);
+    }
   }
 
   // ==========================================

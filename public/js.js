@@ -5091,7 +5091,8 @@ window.google = {
     // Fill Tag Details
     document.getElementById('tag-batch-title').textContent = batch.Title || '-';
     document.getElementById('tag-batch-id').textContent = batch.ID || '-';
-    document.getElementById('tag-batch-status').textContent = batch.Status || '-';
+    const statusTagEl = document.getElementById('tag-batch-status');
+    if (statusTagEl) statusTagEl.textContent = batch.Status || '-';
     document.getElementById('tag-batch-type-badge').textContent = type;
     document.getElementById('tag-batch-user').textContent = batch.Username || loggedInUsername || '-';
 

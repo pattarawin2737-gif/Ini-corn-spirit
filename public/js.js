@@ -3093,12 +3093,6 @@ window.google = {
                        onkeydown="if(event.key==='Enter'){event.preventDefault(); this.closest('.batch-item-card, .batch-card').querySelector('.inline-save-btn').click();}"
                        title="กรอกยอดขายคาดการณ์ แล้วกดปุ่มบันทึก">
                 <span style="color: var(--color-cyan); font-weight: 600; font-size: 0.85rem;">฿</span>
-                <button type="button" class="btn btn-secondary btn-sm inline-quick-save-sales-btn" 
-                        title="บันทึกยอดขายคาดการณ์ทันที"
-                        onclick="this.closest('.batch-item-card, .batch-card').querySelector('.inline-save-btn').click();"
-                        style="padding: 0.2rem 0.45rem; font-size: 0.75rem; border-radius: 5px; border-color: rgba(56,189,248,0.4); color: var(--color-cyan); cursor: pointer; line-height: 1;">
-                  💾
-                </button>
               </div>
             </div>
             <div class="batch-info-row" style="padding-top: 0.25rem;">

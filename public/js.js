@@ -2998,10 +2998,10 @@ window.google = {
 
         const fermentEndFormatted = formatDateTh(raw.dateFermentEnd);
 
-        let optionalDatesHtml = '';
+        let fermentDatesHtml = '';
         if (typeFilter !== 'โซดา') {
           if (formattedDate) {
-            optionalDatesHtml += `
+            fermentDatesHtml += `
               <div class="batch-info-row">
                 <span class="batch-info-label">วันเดือนปีที่หมัก:</span>
                 <span class="batch-info-value" style="color: #38bdf8; font-weight: 600;">${formattedDate}</span>
@@ -3009,7 +3009,7 @@ window.google = {
             `;
           }
           if (fermentEndFormatted) {
-            optionalDatesHtml += `
+            fermentDatesHtml += `
               <div class="batch-info-row">
                 <span class="batch-info-label">สิ้นสุดการหมัก:</span>
                 <span class="batch-info-value" style="color: var(--color-emerald); font-weight: 600;">${fermentEndFormatted}</span>
@@ -3023,6 +3023,7 @@ window.google = {
           pFerments.push({ startDate: raw.datePostDistill || '', endDate: raw.dateEnd || '' });
         }
 
+        let postFermentHtml = '';
         if (typeFilter !== 'โซดา') {
           pFerments.forEach((pf, index) => {
             const startFmt = formatDateTh(pf.startDate);
@@ -3037,7 +3038,7 @@ window.google = {
               } else if (endFmt) {
                 val = `${endFmt} (สิ้นสุดหมักเพิ่ม)`;
               }
-              optionalDatesHtml += `
+              postFermentHtml += `
                 <div class="batch-info-row">
                   <span class="batch-info-label">${label}</span>
                   <span class="batch-info-value" style="color: var(--color-amber);">${val}</span>
@@ -3217,9 +3218,10 @@ window.google = {
             <span class="batch-info-value">${netCost}</span>
           </div>
           ${sodaDetailsHtml}
+          ${fermentDatesHtml}
           ${distillVolHtml}
+          ${postFermentHtml}
           ${salesProfitHtml}
-          ${optionalDatesHtml}
 
           <div class="grid-2" style="margin-top: 0.25rem; gap: 0.5rem; align-items: flex-end;">
             <div class="form-group" style="margin-bottom: 0;">

@@ -5066,6 +5066,219 @@
     }
     document.getElementById('tag-batch-progress-text').textContent = progressTxt;
 
+    // ==========================================
+    // Compute Tank Tag Ingredients
+    // ==========================================
+    const fNum = parseInt(batch.FormulaType) || 1;
+    const fi = raw.formulaInputs || {};
+    let tanks = parseFloat(raw.enzTanks) || (fi.fmTanks ? parseFloat(fi.fmTanks) : 1);
+    if (!tanks || tanks <= 0) tanks = 1;
+
+    let waterPerTank = parseFloat(raw.enzWaterPerTank) || 0;
+    if (!waterPerTank) {
+      if (fNum === 1) {
+        waterPerTank = (fi.f1TankSize || 20) * ((fi.f1WaterPct !== undefined ? fi.f1WaterPct : 60) / 100);
+      } else if (fNum === 2) {
+        waterPerTank = (fi.f2TankSize || 20) * ((fi.f2WaterPct !== undefined ? fi.f2WaterPct : 60) / 100);
+      } else if (fNum === 5) {
+        waterPerTank = (fi.f5TankSize || 20) * ((fi.f5WaterPct !== undefined ? fi.f5WaterPct : 60) / 100);
+      } else if (fNum === 3) {
+        waterPerTank = (fi.f3TankSize || 20) * ((fi.f3WaterPct !== undefined ? fi.f3WaterPct : 60) / 100);
+      } else if (fNum === 4) {
+        waterPerTank = (fi.f4TankSize || 20) * ((fi.f4WaterPct !== undefined ? fi.f4WaterPct : 60) / 100);
+      } else if (raw.spiritsType === 'สุราหมัก') {
+        waterPerTank = fi.fmWaterPerTank || 20;
+      } else {
+        waterPerTank = 80;
+      }
+    }
+
+    const waterRatio = 100;
+    const enzRatio = 3;
+    const yeastRatio = 20;
+    const lookpangRatio = 300;
+
+    let enzymePerTank = (enzRatio / waterRatio) * waterPerTank;
+    let totalEnzyme = enzymePerTank * tanks;
+
+    let sodiumPerTank = (waterPerTank / waterRatio) * yeastRatio;
+    let totalSodium = sodiumPerTank * tanks;
+
+    const lookpangMulti = (fNum === 1) ? 2 : 1;
+    let lookpangPerTank = ((waterPerTank / waterRatio) * lookpangRatio) * lookpangMulti;
+    let totalLookpang = lookpangPerTank * tanks;
+
+    const yeastMulti = (fNum === 4) ? 9 : 1;
+    let yeastPerTank = ((waterPerTank / waterRatio) * yeastRatio) * yeastMulti;
+    let totalYeast = yeastPerTank * tanks;
+
+    // Formula specific quantities
+    let mainWaterPerTank = 0;
+    let mainWaterTotal = 0;
+    let rawRicePerTank = 0;
+    let rawRiceTotal = 0;
+    let cookedRicePerTank = 0;
+    let cookedRiceTotal = 0;
+    let rawCornPerTank = 0;
+    let rawCornTotal = 0;
+    let cookedCornPerTank = 0;
+    let cookedCornTotal = 0;
+    let sugarPerTank = 0;
+    let sugarTotal = 0;
+
+    if (fNum === 1) {
+      const f1Size = fi.f1TankSize || 20;
+      const f1Pct = fi.f1WaterPct !== undefined ? fi.f1WaterPct : 60;
+      const f1LiqPerTank = f1Size * (f1Pct / 100);
+      mainWaterPerTank = f1LiqPerTank / 2;
+      mainWaterTotal = mainWaterPerTank * tanks;
+      cookedRicePerTank = mainWaterPerTank;
+      cookedRiceTotal = cookedRicePerTank * tanks;
+      rawRicePerTank = (cookedRicePerTank / 1.53) + (cookedRicePerTank / 3);
+      rawRiceTotal = rawRicePerTank * tanks;
+    } else if (fNum === 2) {
+      const f2Size = fi.f2TankSize || 20;
+      const f2Pct = fi.f2WaterPct !== undefined ? fi.f2WaterPct : 60;
+      const f2Const = fi.f2TempSelect || 6;
+      const f2LiqPerTank = f2Size * (f2Pct / 100);
+      mainWaterPerTank = f2LiqPerTank;
+      mainWaterTotal = mainWaterPerTank * tanks;
+      cookedRicePerTank = f2LiqPerTank / f2Const / 1.2;
+      cookedRiceTotal = cookedRicePerTank * tanks;
+      rawRicePerTank = (cookedRicePerTank / 1.53) + (cookedRicePerTank / 3);
+      rawRiceTotal = rawRicePerTank * tanks;
+      sugarPerTank = (f2LiqPerTank - (f2LiqPerTank / f2Const)) / 3;
+      sugarTotal = sugarPerTank * tanks;
+    } else if (fNum === 5) {
+      const f5Size = fi.f5TankSize || 20;
+      const f5Pct = fi.f5WaterPct !== undefined ? fi.f5WaterPct : 60;
+      const f5Const = fi.f5TempSelect || 6;
+      const f5LiqPerTank = f5Size * (f5Pct / 100);
+      mainWaterPerTank = f5LiqPerTank;
+      mainWaterTotal = mainWaterPerTank * tanks;
+      cookedRicePerTank = (f5LiqPerTank / f5Const / 1.2) / 2;
+      cookedRiceTotal = cookedRicePerTank * tanks;
+      rawRicePerTank = (cookedRicePerTank / 1.53) + (cookedRicePerTank / 3);
+      rawRiceTotal = rawRicePerTank * tanks;
+      cookedCornPerTank = cookedRicePerTank;
+      cookedCornTotal = cookedCornPerTank * tanks;
+      rawCornPerTank = cookedRicePerTank * 0.85;
+      rawCornTotal = rawCornPerTank * tanks;
+      sugarPerTank = (f5LiqPerTank - (f5LiqPerTank / f5Const)) / 3;
+      sugarTotal = sugarPerTank * tanks;
+    } else if (fNum === 3) {
+      const f3Size = fi.f3TankSize || 20;
+      const f3Pct = fi.f3WaterPct !== undefined ? fi.f3WaterPct : 60;
+      const f3Const = fi.f3TempSelect || 6;
+      const f3TotalJuice = fi.f3TotalJuice || 0;
+      const f3LiqPerTank = f3Size * (f3Pct / 100);
+      const f3JuicePerTank = f3TotalJuice / tanks;
+      mainWaterPerTank = f3LiqPerTank - f3JuicePerTank;
+      mainWaterTotal = mainWaterPerTank * tanks;
+      cookedRicePerTank = ((f3LiqPerTank - f3TotalJuice) / f3Const) / 1.2;
+      cookedRiceTotal = cookedRicePerTank * tanks;
+      rawRicePerTank = (cookedRicePerTank / 1.53) + (cookedRicePerTank / 3);
+      rawRiceTotal = rawRicePerTank * tanks;
+      sugarPerTank = (((f3LiqPerTank - f3TotalJuice) - ((f3LiqPerTank - f3TotalJuice) / f3Const))) / 3;
+      sugarTotal = sugarPerTank * tanks;
+    } else if (fNum === 4) {
+      const f4Size = fi.f4TankSize || 20;
+      const f4Pct = fi.f4WaterPct !== undefined ? fi.f4WaterPct : 60;
+      const f4TotalJuice = fi.f4TotalJuice || 0;
+      const f4LiqPerTank = f4Size * (f4Pct / 100);
+      const f4JuicePerTank = f4TotalJuice / tanks;
+      mainWaterPerTank = f4LiqPerTank - f4JuicePerTank;
+      mainWaterTotal = mainWaterPerTank * tanks;
+      sugarPerTank = f4LiqPerTank / 3;
+      sugarTotal = sugarPerTank * tanks;
+    } else if (raw.spiritsType === 'สุราหมัก') {
+      mainWaterPerTank = fi.fmWaterPerTank || waterPerTank;
+      mainWaterTotal = mainWaterPerTank * tanks;
+    }
+
+    // Override from autoIngredients if saved
+    if (raw.autoIngredients && Array.isArray(raw.autoIngredients)) {
+      const aSod = raw.autoIngredients.find(i => i.name && i.name.includes('โซเดียม'));
+      if (aSod && parseFloat(aSod.qty) > 0) {
+        totalSodium = parseFloat(aSod.qty);
+        sodiumPerTank = totalSodium / tanks;
+      }
+      const aYeast = raw.autoIngredients.find(i => i.name && i.name === 'ยีสต์');
+      if (aYeast && parseFloat(aYeast.qty) > 0) {
+        totalYeast = parseFloat(aYeast.qty);
+        yeastPerTank = totalYeast / tanks;
+      }
+      const aLp = raw.autoIngredients.find(i => i.name && i.name.includes('ลูกแป้ง'));
+      if (aLp && parseFloat(aLp.qty) > 0) {
+        totalLookpang = parseFloat(aLp.qty);
+        lookpangPerTank = totalLookpang / tanks;
+      }
+      const aEnz = raw.autoIngredients.find(i => i.name && i.name === 'เอนไซม์');
+      if (aEnz && parseFloat(aEnz.qty) > 0) {
+        totalEnzyme = parseFloat(aEnz.qty);
+        enzymePerTank = totalEnzyme / tanks;
+      }
+      const aSugar = raw.autoIngredients.find(i => i.name && i.name.includes('น้ำตาล'));
+      if (aSugar && parseFloat(aSugar.qty) > 0) {
+        sugarTotal = parseFloat(aSugar.qty);
+        sugarPerTank = sugarTotal / tanks;
+      }
+    }
+
+    // Enzyme prep calculations
+    const waterEnz = totalEnzyme;
+    const enzymeG = (waterEnz / waterRatio) * 25;
+    const yeastG = (waterEnz / waterRatio) * 25;
+    const calSulfiteG = (waterEnz / waterRatio) * 15;
+    const sugarKg = (waterEnz / waterRatio) * 25;
+
+    // Populate Section 1: รายละเอียดวัตถุดิบและต้นทุนการผลิตหลัก
+    const elSodium = document.getElementById('tag-sodium');
+    if (elSodium) elSodium.textContent = `${sodiumPerTank.toFixed(1)} / ${totalSodium.toFixed(1)} กรัม`;
+
+    const elWater = document.getElementById('tag-water');
+    if (elWater) elWater.textContent = `${mainWaterPerTank.toFixed(1)} / ${mainWaterTotal.toFixed(1)} ลิตร`;
+
+    const elRawRice = document.getElementById('tag-raw-rice');
+    if (elRawRice) elRawRice.textContent = rawRiceTotal > 0 ? `${rawRicePerTank.toFixed(1)} / ${rawRiceTotal.toFixed(1)} Kg` : '-';
+
+    const elCookedRice = document.getElementById('tag-cooked-rice');
+    if (elCookedRice) elCookedRice.textContent = cookedRiceTotal > 0 ? `${cookedRicePerTank.toFixed(1)} / ${cookedRiceTotal.toFixed(1)} Kg` : '-';
+
+    const elRawCorn = document.getElementById('tag-raw-corn');
+    if (elRawCorn) elRawCorn.textContent = rawCornTotal > 0 ? `${rawCornPerTank.toFixed(1)} / ${rawCornTotal.toFixed(1)} Kg` : '-';
+
+    const elCookedCorn = document.getElementById('tag-cooked-corn');
+    if (elCookedCorn) elCookedCorn.textContent = cookedCornTotal > 0 ? `${cookedCornPerTank.toFixed(1)} / ${cookedCornTotal.toFixed(1)} Kg` : '-';
+
+    const elSugar = document.getElementById('tag-sugar');
+    if (elSugar) elSugar.textContent = sugarTotal > 0 ? `${sugarPerTank.toFixed(1)} / ${sugarTotal.toFixed(1)} Kg` : '-';
+
+    const elLookpang = document.getElementById('tag-lookpang');
+    if (elLookpang) elLookpang.textContent = `${lookpangPerTank.toFixed(1)} / ${totalLookpang.toFixed(1)} กรัม`;
+
+    const elYeast = document.getElementById('tag-yeast');
+    if (elYeast) elYeast.textContent = `${yeastPerTank.toFixed(1)} / ${totalYeast.toFixed(1)} กรัม`;
+
+    const elEnzyme = document.getElementById('tag-enzyme');
+    if (elEnzyme) elEnzyme.textContent = `${enzymePerTank.toFixed(1)} / ${totalEnzyme.toFixed(1)} ลิตร`;
+
+    // Populate Section 2: เอนไซม์ที่ใช้เตรียมทำตัวเอนไซม์แยก
+    const elEnzWater = document.getElementById('tag-enz-water');
+    if (elEnzWater) elEnzWater.textContent = `${waterEnz.toFixed(1)} ลิตร`;
+
+    const elEnzPrep = document.getElementById('tag-enz-prep');
+    if (elEnzPrep) elEnzPrep.textContent = `${enzymeG.toFixed(1)} กรัม`;
+
+    const elEnzYeast = document.getElementById('tag-enz-yeast');
+    if (elEnzYeast) elEnzYeast.textContent = `${yeastG.toFixed(1)} กรัม`;
+
+    const elEnzCalSulfite = document.getElementById('tag-enz-calsulfite');
+    if (elEnzCalSulfite) elEnzCalSulfite.textContent = `${calSulfiteG.toFixed(1)} กรัม`;
+
+    const elEnzSugar = document.getElementById('tag-enz-sugar');
+    if (elEnzSugar) elEnzSugar.textContent = `${sugarKg.toFixed(1)} Kg`;
+
     // Generate QR Code containing URL to open the batch directly
     const directUrl = `${window.location.origin}${window.location.pathname}#batch-${batch.ID}`;
     const qrContainer = document.getElementById('tag-qr-code-container');

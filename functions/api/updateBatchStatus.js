@@ -7,6 +7,7 @@ export async function onRequestPost(context) {
     const fermentationDays = body.args && body.args[2];
     const testResult = body.args && body.args[3];
     const username = body.args && body.args[4];
+    const expectedSales = body.args && body.args[5];
 
     if (!id) {
       return new Response(JSON.stringify(false), {
@@ -72,6 +73,9 @@ export async function onRequestPost(context) {
     }
     if (testResult !== undefined && testResult !== null) {
       rawObj.testResult = testResult;
+    }
+    if (expectedSales !== undefined && expectedSales !== null && expectedSales !== '') {
+      rawObj.expectedSales = parseFloat(expectedSales) || 0;
     }
     rawObj.UpdatedAt = now;
 

@@ -237,7 +237,7 @@ function saveBatch(batchObj) {
 /**
  * Quick update batch status or fermentation days from the list view
  */
-function updateBatchStatus(id, newStatus, fermentationDays, testResult, username) {
+function updateBatchStatus(id, newStatus, fermentationDays, testResult, username, expectedSales) {
   try {
     var sheet = getOrCreateSheet('BatchData');
     var data = sheet.getDataRange().getValues();
@@ -319,6 +319,9 @@ function updateBatchStatus(id, newStatus, fermentationDays, testResult, username
             }
             if (testResult !== undefined && testResult !== null) {
               rawObj.testResult = testResult;
+            }
+            if (expectedSales !== undefined && expectedSales !== null && expectedSales !== '') {
+              rawObj.expectedSales = parseFloat(expectedSales) || 0;
             }
             rawObj.UpdatedAt = new Date().toISOString();
             rawCell.setValue(JSON.stringify(rawObj));

@@ -2659,6 +2659,19 @@ window.google = {
     }
   }
 
+  function handleInlineSalesInput(input) {
+    const card = input.closest('.batch-item-card') || input.closest('.batch-card');
+    if (!card) return;
+    const cost = parseFloat(input.getAttribute('data-cost')) || 0;
+    const sales = parseFloat(input.value) || 0;
+    const profit = sales - cost;
+    const profitEl = card.querySelector('.inline-profit-display');
+    if (profitEl) {
+      profitEl.textContent = profit.toFixed(1) + ' ฿';
+      profitEl.style.color = profit >= 0 ? 'var(--color-emerald)' : '#ef4444';
+    }
+  }
+
   function renderStatusGrid(containerId, targetStatus, typeFilter) {
     try {
       const container = document.getElementById(containerId);
@@ -3048,25 +3061,49 @@ window.google = {
         `;
 
         let salesProfitHtml = '';
-        if (prodType === 'ทำขายจริง') {
+        if (prodType === 'ทำขายจริง' || typeFilter === 'สุรากลั่น' || typeFilter === 'สุราแช่' || typeFilter === 'สุราหมัก' || typeFilter === 'โซดา') {
           let expectedSales = 0;
           let rawNetCost = 0;
           if (typeFilter === 'โซดา') {
-            expectedSales = parseFloat(raw.volume || 0) * 60; // 60 baht per liter
+            expectedSales = (raw.expectedSales !== undefined && raw.expectedSales !== null && raw.expectedSales !== '')
+              ? parseFloat(raw.expectedSales)
+              : (parseFloat(raw.volume || 0) * 60);
             rawNetCost = parseFloat(raw.totalCost || 0);
           } else {
             expectedSales = parseFloat(raw.expectedSales) || 0;
             rawNetCost = parseFloat(raw.netCost) || 0;
           }
           const profit = expectedSales - rawNetCost;
+          const displaySalesVal = (raw.expectedSales !== undefined && raw.expectedSales !== null && raw.expectedSales !== '')
+            ? parseFloat(raw.expectedSales)
+            : (expectedSales > 0 ? expectedSales : '');
+
           salesProfitHtml = `
-            <div class="batch-info-row">
-              <span class="batch-info-label">ยอดขายคาดการณ์:</span>
-              <span class="batch-info-value" style="color: var(--color-cyan); font-weight: 600;">${expectedSales.toFixed(1)} ฿</span>
+            <div class="batch-info-row" style="align-items: center; padding: 0.35rem 0;">
+              <span class="batch-info-label" style="font-weight: 500;">ยอดขายคาดการณ์:</span>
+              <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                <input type="number" class="input-control inline-sales-input" 
+                       data-id="${batch.ID}"
+                       data-cost="${rawNetCost}"
+                       value="${displaySalesVal !== '' ? Number(displaySalesVal) : ''}" 
+                       placeholder="0.0" 
+                       step="any" min="0"
+                       style="width: 110px; padding: 0.25rem 0.5rem; font-size: 0.85rem; text-align: right; border-radius: 6px; color: var(--color-cyan); font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18);"
+                       oninput="handleInlineSalesInput(this)"
+                       onkeydown="if(event.key==='Enter'){event.preventDefault(); this.closest('.batch-item-card, .batch-card').querySelector('.inline-save-btn').click();}"
+                       title="กรอกยอดขายคาดการณ์ แล้วกดปุ่มบันทึก">
+                <span style="color: var(--color-cyan); font-weight: 600; font-size: 0.85rem;">฿</span>
+                <button type="button" class="btn btn-secondary btn-sm inline-quick-save-sales-btn" 
+                        title="บันทึกยอดขายคาดการณ์ทันที"
+                        onclick="this.closest('.batch-item-card, .batch-card').querySelector('.inline-save-btn').click();"
+                        style="padding: 0.2rem 0.45rem; font-size: 0.75rem; border-radius: 5px; border-color: rgba(56,189,248,0.4); color: var(--color-cyan); cursor: pointer; line-height: 1;">
+                  💾
+                </button>
+              </div>
             </div>
-            <div class="batch-info-row">
+            <div class="batch-info-row" style="padding-top: 0.25rem;">
               <span class="batch-info-label">ยอดกำไรคงเหลือ:</span>
-              <span class="batch-info-value" style="color: ${profit >= 0 ? 'var(--color-emerald)' : '#ef4444'}; font-weight: 600;">${profit.toFixed(1)} ฿</span>
+              <span class="batch-info-value inline-profit-display" style="color: ${profit >= 0 ? 'var(--color-emerald)' : '#ef4444'}; font-weight: 600;">${profit.toFixed(1)} ฿</span>
             </div>
           `;
         }
@@ -3247,13 +3284,22 @@ window.google = {
               }
             }
 
-            showLoader('กำลังบันทึกข้อมูลสถานะ...');
+            let expectedSales = null;
+            const salesInput = card.querySelector('.inline-sales-input');
+            if (salesInput && salesInput.value.trim() !== '') {
+              expectedSales = parseFloat(salesInput.value) || 0;
+            }
+
+            showLoader('กำลังบันทึกข้อมูล...');
             google.script.run.withSuccessHandler(function(res) {
-              showToast('บันทึกการเปลี่ยนสถานะแบทช์เรียบร้อยแล้ว', 'success');
+              showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
               sendTelegramStatusChangedAlert(id, newStatus, fermentationDays);
               autoSwitchSubTabAfterStatusUpdate(newStatus);
               fetchBatches(false);
-            }).updateBatchStatus(id, newStatus, fermentationDays, testResult, loggedInUsername);
+            }).withFailureHandler(function(err) {
+              hideLoader();
+              showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (err.message || err.toString()), 'error');
+            }).updateBatchStatus(id, newStatus, fermentationDays, testResult, loggedInUsername, expectedSales);
           };
         }
 

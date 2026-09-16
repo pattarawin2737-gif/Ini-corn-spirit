@@ -5000,12 +5000,16 @@
     return `<img src="https://api.qrserver.com/v1/create-qr-code/?size=${s}x${s}&data=${encoded}&margin=2" width="${s}" height="${s}" alt="QR Code" style="display:block; border-radius:4px; max-width:100%; height:auto;" onerror="this.outerHTML='<div style=\\'font-size:0.7rem;color:#888;padding:1rem;\\'>QR Code: ${text}</div>'">`;
   }
 
+  let currentTagBatchId = null;
+
   function openTankTagModal(batchId) {
     const batch = batches.find(b => b.ID === batchId);
     if (!batch) {
       showToast('ไม่พบข้อมูลแบทช์', 'error');
       return;
     }
+
+    currentTagBatchId = batch.ID;
 
     let raw = {};
     try {
@@ -5279,6 +5283,30 @@
     const elEnzSugar = document.getElementById('tag-enz-sugar');
     if (elEnzSugar) elEnzSugar.textContent = `${sugarKg.toFixed(1)} Kg`;
 
+    // Populate Fillable Measurements (ความหวานก่อนหมัก, ความหวานหลังหมัก, สุราที่ได้)
+    const elBrixBefore = document.getElementById('tag-brix-before');
+    if (elBrixBefore) {
+      elBrixBefore.value = (raw.tagBrixBefore !== undefined && raw.tagBrixBefore !== null) 
+        ? raw.tagBrixBefore 
+        : '';
+    }
+    const elBrixAfter = document.getElementById('tag-brix-after');
+    if (elBrixAfter) {
+      elBrixAfter.value = (raw.tagBrixAfter !== undefined && raw.tagBrixAfter !== null) 
+        ? raw.tagBrixAfter 
+        : '';
+    }
+    const elDistillVol = document.getElementById('tag-distill-vol');
+    if (elDistillVol) {
+      let currentVol = '';
+      if (raw.tagDistillVol !== undefined && raw.tagDistillVol !== null && raw.tagDistillVol !== '') {
+        currentVol = raw.tagDistillVol;
+      } else if (raw.distillVolReal !== undefined && raw.distillVolReal !== null && raw.distillVolReal !== '' && parseFloat(raw.distillVolReal) > 0) {
+        currentVol = raw.distillVolReal;
+      }
+      elDistillVol.value = currentVol;
+    }
+
     // Generate QR Code containing URL to open the batch directly
     const directUrl = `${window.location.origin}${window.location.pathname}#batch-${batch.ID}`;
     const qrContainer = document.getElementById('tag-qr-code-container');
@@ -5287,11 +5315,61 @@
     document.getElementById('tank-tag-modal').style.display = 'flex';
   }
 
+  function saveTankTagValues(silent) {
+    if (!currentTagBatchId) return;
+    const batch = batches.find(b => b.ID === currentTagBatchId);
+    if (!batch) return;
+
+    let raw = {};
+    try {
+      raw = typeof batch.RawData === 'string' ? JSON.parse(batch.RawData) : (batch.RawData || {});
+    } catch(e) {
+      raw = {};
+    }
+
+    const brixBefore = document.getElementById('tag-brix-before') ? document.getElementById('tag-brix-before').value.trim() : '';
+    const brixAfter = document.getElementById('tag-brix-after') ? document.getElementById('tag-brix-after').value.trim() : '';
+    const distillVol = document.getElementById('tag-distill-vol') ? document.getElementById('tag-distill-vol').value.trim() : '';
+
+    raw.tagBrixBefore = brixBefore;
+    raw.tagBrixAfter = brixAfter;
+    raw.tagDistillVol = distillVol;
+    if (distillVol !== '') {
+      const numVol = parseFloat(distillVol);
+      if (!isNaN(numVol)) {
+        raw.distillVolReal = numVol;
+      }
+    }
+    batch.RawData = JSON.stringify(raw);
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      if (!silent) showLoader('กำลังบันทึกข้อมูลป้ายแท็ก...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!silent) {
+            hideLoader();
+            showToast('บันทึกข้อมูลค่าการหมักเรียบร้อยแล้ว', 'success');
+          }
+          fetchBatches(false);
+        })
+        .withFailureHandler(function(err) {
+          if (!silent) {
+            hideLoader();
+            showToast('เกิดข้อผิดพลาดในการบันทึก: ' + (err.message || err.toString()), 'error');
+          }
+        })
+        .saveTankTagMeasurements(currentTagBatchId, brixBefore, brixAfter, distillVol, loggedInUsername);
+    } else {
+      if (!silent) showToast('บันทึกข้อมูลในระบบเรียบร้อย', 'success');
+    }
+  }
+
   function closeTankTagModal() {
     document.getElementById('tank-tag-modal').style.display = 'none';
   }
 
   function printTankTag() {
+    saveTankTagValues(true);
     window.print();
   }
 

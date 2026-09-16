@@ -341,6 +341,49 @@ function updateBatchStatus(id, newStatus, fermentationDays, testResult, username
 }
 
 /**
+ * Save Tank Tag measurements (sweetness before, sweetness after, spirits volume)
+ */
+function saveTankTagMeasurements(id, brixBefore, brixAfter, distillVol, username) {
+  try {
+    var sheet = getOrCreateSheet('BatchData');
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idIndex = headers.indexOf('ID');
+    var rawIndex = headers.indexOf('RawData');
+    var updatedIndex = headers.indexOf('UpdatedAt');
+    if (idIndex < 0 || rawIndex < 0) return false;
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][idIndex] === id) {
+        var rowIndex = i + 1;
+        var rawCell = sheet.getRange(rowIndex, rawIndex + 1);
+        var rawVal = rawCell.getValue();
+        var rawObj = {};
+        try {
+          rawObj = typeof rawVal === 'string' ? JSON.parse(rawVal) : (rawVal || {});
+        } catch(e) {
+          rawObj = {};
+        }
+        if (brixBefore !== undefined) rawObj.tagBrixBefore = brixBefore;
+        if (brixAfter !== undefined) rawObj.tagBrixAfter = brixAfter;
+        if (distillVol !== undefined) {
+          rawObj.tagDistillVol = distillVol;
+          var num = parseFloat(distillVol);
+          if (!isNaN(num)) rawObj.distillVolReal = num;
+        }
+        rawObj.UpdatedAt = new Date().toISOString();
+        rawCell.setValue(JSON.stringify(rawObj));
+        if (updatedIndex >= 0) sheet.getRange(rowIndex, updatedIndex + 1).setValue(new Date().toISOString());
+        return true;
+      }
+    }
+    return false;
+  } catch(e) {
+    Logger.log("Error in saveTankTagMeasurements: " + e.toString());
+    return false;
+  }
+}
+
+/**
  * Delete a batch
  */
 function deleteBatch(id, username) {

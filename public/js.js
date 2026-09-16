@@ -1625,17 +1625,18 @@ window.google = {
       // Add formula specific items
       if (currentFormulaId === 1 || currentFormulaId === 2 || currentFormulaId === 3) {
         defaults.push({ name: 'ข้าวเหนียว กข6', qty: fo.stickyRiceTotal || 0, unit: 'Kg', price: 0 });
-        defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: ((fo.plainRiceTotal || 0) * 18) });
+        defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: ((fo.plainRiceTotal || 0) * 18), unitPrice: 18 });
       }
       
       if (currentFormulaId === 5) {
         defaults.push({ name: 'ข้าวเหนียว กข6', qty: fo.stickyRiceTotal || 0, unit: 'Kg', price: 0 });
-        defaults.push({ name: 'ข้าวโพดหวาน', qty: fo.cornTotal || 0, unit: 'Kg', price: ((fo.cornTotal || 0) * 24) });
-        defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: ((fo.plainRiceTotal || 0) * 18) });
+        defaults.push({ name: 'ข้าวโพดหวาน', qty: fo.cornTotal || 0, unit: 'Kg', price: ((fo.cornTotal || 0) * 24), unitPrice: 24 });
+        defaults.push({ name: 'ข้าวโพดป๊อปคอร์น', qty: fo.cornTotal || 0, unit: 'Kg', price: ((fo.cornTotal || 0) * 48), unitPrice: 48 });
+        defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: ((fo.plainRiceTotal || 0) * 18), unitPrice: 18 });
       }
 
       if (currentFormulaId === 2 || currentFormulaId === 3 || currentFormulaId === 4 || currentFormulaId === 5) {
-        defaults.push({ name: 'น้ำตาลทรายแดง', qty: fo.sugarTotal || 0, unit: 'Kg', price: ((fo.sugarTotal || 0) * 28) });
+        defaults.push({ name: 'น้ำตาลทรายแดง', qty: fo.sugarTotal || 0, unit: 'Kg', price: ((fo.sugarTotal || 0) * 28), unitPrice: 28 });
       }
 
       if (currentFormulaId === 3 || currentFormulaId === 4) {
@@ -1698,8 +1699,20 @@ window.google = {
 
   function updateAutoIngredient(index, field, value) {
     if (loadedAutoIngredients && loadedAutoIngredients[index]) {
-      if (field === 'qty' || field === 'price') {
-        loadedAutoIngredients[index][field] = parseFloat(value) || 0;
+      if (field === 'qty') {
+        const qtyVal = parseFloat(value) || 0;
+        loadedAutoIngredients[index]['qty'] = qtyVal;
+        if (loadedAutoIngredients[index].unitPrice !== undefined && loadedAutoIngredients[index].unitPrice !== null) {
+          const newPrice = qtyVal * loadedAutoIngredients[index].unitPrice;
+          loadedAutoIngredients[index].price = newPrice;
+          const rows = document.querySelectorAll('#ingredients-table tbody tr.auto-row');
+          if (rows[index]) {
+            const priceInput = rows[index].querySelector('.auto-ingredient-price');
+            if (priceInput) priceInput.value = newPrice.toFixed(1);
+          }
+        }
+      } else if (field === 'price') {
+        loadedAutoIngredients[index]['price'] = parseFloat(value) || 0;
       } else {
         loadedAutoIngredients[index][field] = value;
       }

@@ -1761,19 +1761,33 @@
       font-weight: 700 !important;
       color: #222 !important;
     }
-    .tag-ingredients-section {
+    .tag-tables-container {
+      display: grid !important;
+      grid-template-columns: 1.15fr 0.85fr !important;
+      gap: 1.5rem !important;
       margin-top: 10px !important;
       padding-top: 8px !important;
       border-top: 2px solid #000 !important;
     }
+    .tag-table-col-left {
+      min-width: 0 !important;
+    }
+    .tag-table-col-right {
+      min-width: 0 !important;
+      border-left: 1.5px dashed #888 !important;
+      padding-left: 1.25rem !important;
+    }
     .tag-section-title {
-      font-size: 14px !important;
+      font-size: 13.5px !important;
       font-weight: 800 !important;
       color: #000 !important;
       margin-bottom: 5px !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
     }
     .tag-section-sub {
-      font-size: 12px !important;
+      font-size: 11.5px !important;
       font-weight: 600 !important;
       color: #555 !important;
     }
@@ -1783,15 +1797,11 @@
     }
     .tag-table td {
       font-size: 12px !important;
-      padding: 4.5px 6px !important;
+      padding: 4.5px 5px !important;
       line-height: 1.35 !important;
     }
     .tag-table tr {
       border-bottom: 1px solid #eee !important;
-    }
-    .tag-divider {
-      border-top: 1.5px dashed #666 !important;
-      margin: 8px 0 6px 0 !important;
     }
     .tag-footer {
       margin-top: 10px !important;
@@ -1801,6 +1811,19 @@
     }
     .modal-backdrop, .btn, .sidebar, .content-header, header, nav, #tank-tag-modal .card > div:first-child, #tank-tag-modal .card > div:last-child {
       display: none !important;
+    }
+  }
+
+  @media screen and (max-width: 600px) {
+    .tag-tables-container {
+      grid-template-columns: 1fr !important;
+      gap: 1rem !important;
+    }
+    .tag-table-col-right {
+      border-left: none !important;
+      border-top: 1.5px dashed #bbb !important;
+      padding-left: 0 !important;
+      padding-top: 0.8rem !important;
     }
   }
 </style>

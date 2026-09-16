@@ -2266,11 +2266,11 @@
                   <span class="tag-info-label" style="color: #666; font-size: 0.75rem; display: block;">วันที่เริ่มหมัก:</span>
                   <strong id="tag-batch-start-date" class="tag-info-val" style="color: #111;">-</strong>
                 </div>
-                <div>
+                <div id="tag-box-end-date">
                   <span class="tag-info-label" style="color: #666; font-size: 0.75rem; display: block;">วันที่สิ้นสุด:</span>
                   <strong id="tag-batch-end-date" class="tag-info-val" style="color: #111;">-</strong>
                 </div>
-                <div style="grid-column: span 2;">
+                <div id="tag-box-days" style="grid-column: span 2;">
                   <span class="tag-info-label" style="color: #666; font-size: 0.75rem; display: block;">จำนวนวันที่หมัก:</span>
                   <strong id="tag-batch-days" class="tag-info-val" style="color: #b45309; font-size: 0.95rem;">-</strong>
                 </div>
@@ -2313,89 +2313,29 @@
               </div>
             </div>
 
-            <!-- Ingredients and Enzyme Preparation Section (2 Columns Side-by-Side) -->
-            <div class="tag-tables-container" style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.25rem; margin-top: 0.9rem; border-top: 1.5px solid #000; padding-top: 0.6rem;">
+            <!-- Two-column Section: Ingredients (Left) & Enzyme Prep (Right) -->
+            <div id="tag-tables-container" class="tag-tables-container" style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 1.25rem; margin-top: 0.9rem; border-top: 1.5px solid #000; padding-top: 0.6rem;">
               
-              <!-- Left Column: รายละเอียดวัตถุดิบและต้นทุนการผลิตหลัก (10 items) -->
-              <div class="tag-table-col-left">
+              <!-- Left Column: รายละเอียดวัตถุดิบและต้นทุนการผลิตหลัก -->
+              <div id="tag-col-main-ingredients" class="tag-table-col-left">
                 <div class="tag-section-title" style="font-weight: 800; font-size: 0.88rem; color: #000; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
                   <span>รายละเอียดวัตถุดิบและต้นทุนหลัก</span>
                   <span class="tag-section-sub" style="font-size: 0.72rem; color: #666; font-weight: 600;">ต่อถัง / ทั้งหมด</span>
                 </div>
                 <table class="tag-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; line-height: 1.35;">
-                  <tbody>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">โซเดียมเมตาไบซัลไฟต์:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-sodium">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">ปริมาณน้ำที่ใช้:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-water">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">ข้าวดิบ:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-raw-rice">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">ข้าวสุก:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-cooked-rice">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">ข้าวโพดดิบ:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-raw-corn">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">ข้าวโพดสุก:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-cooked-corn">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">น้ำตาลทรายแดง:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-sugar">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">ลูกแป้ง:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-lookpang">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">ยีสต์:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-yeast">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">เอนไซม์:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-enzyme">-</td>
-                    </tr>
+                  <tbody id="tag-main-ingredients-body">
                   </tbody>
                 </table>
               </div>
 
-              <!-- Right Column: เอนไซม์ที่ใช้เตรียมทำตัวเอนไซม์แยก (5 items) -->
-              <div class="tag-table-col-right" style="border-left: 1.5px dashed #bbb; padding-left: 1.1rem;">
+              <!-- Right Column: เอนไซม์ที่ใช้เตรียมทำตัวเอนไซม์แยก -->
+              <div id="tag-col-enzyme-prep" class="tag-table-col-right" style="border-left: 1.5px dashed #bbb; padding-left: 1.1rem;">
                 <div class="tag-section-title" style="font-weight: 800; font-size: 0.88rem; color: #000; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
                   <span>เอนไซม์ที่ใช้เตรียมทำตัวเอนไซม์แยก</span>
                   <span class="tag-section-sub" style="font-size: 0.72rem; color: #666; font-weight: 600;">ปริมาณ</span>
                 </div>
                 <table class="tag-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; line-height: 1.35;">
-                  <tbody>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">น้ำที่ทำเอนไซม์:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-enz-water">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">เอนไซม์ที่เตรียม:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-enz-prep">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">ยีสต์ที่ใช้:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-enz-yeast">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">แคลเซียมซัลไฟต์:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-enz-calsulfite">-</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                      <td style="padding: 3px 4px; color: #444;">น้ำตาลทรายที่ใช้:</td>
-                      <td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;" id="tag-enz-sugar">-</td>
-                    </tr>
+                  <tbody id="tag-enz-ingredients-body">
                   </tbody>
                 </table>
               </div>

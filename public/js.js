@@ -5098,15 +5098,26 @@ window.google = {
 
     // Dates & Days
     document.getElementById('tag-batch-start-date').textContent = batch.Date || '-';
-    const endDate = raw.dateFermentEnd || raw.dateEnd || '-';
-    document.getElementById('tag-batch-end-date').textContent = endDate;
+
+    const endDate = raw.dateFermentEnd || raw.dateEnd || '';
+    const boxEndDate = document.getElementById('tag-box-end-date');
+    if (endDate && endDate !== '-' && endDate !== 'null') {
+      document.getElementById('tag-batch-end-date').textContent = endDate;
+      if (boxEndDate) boxEndDate.style.display = '';
+    } else {
+      if (boxEndDate) boxEndDate.style.display = 'none';
+    }
 
     const fermentDays = (batch && batch.FermentationDays !== undefined && batch.FermentationDays !== null && batch.FermentationDays !== '')
       ? batch.FermentationDays
       : (raw.FermentationDays || raw.fermentationDays || raw.fermentDays || 0);
+    const boxDays = document.getElementById('tag-box-days');
     const tagBatchDaysEl = document.getElementById('tag-batch-days');
-    if (tagBatchDaysEl) {
-      tagBatchDaysEl.textContent = `${fermentDays} วัน`;
+    if (fermentDays && parseFloat(fermentDays) > 0) {
+      if (tagBatchDaysEl) tagBatchDaysEl.textContent = `${fermentDays} วัน`;
+      if (boxDays) boxDays.style.display = '';
+    } else {
+      if (boxDays) boxDays.style.display = 'none';
     }
 
     // Formula & Target
@@ -5303,52 +5314,102 @@ window.google = {
     const calSulfiteG = (waterEnz / waterRatio) * 15;
     const sugarKg = (waterEnz / waterRatio) * 25;
 
-    // Populate Section 1: รายละเอียดวัตถุดิบและต้นทุนการผลิตหลัก
-    const elSodium = document.getElementById('tag-sodium');
-    if (elSodium) elSodium.textContent = `${sodiumPerTank.toFixed(1)} / ${totalSodium.toFixed(1)} กรัม`;
+    // Render Section 1: รายละเอียดวัตถุดิบและต้นทุนหลัก (เฉพาะรายการที่มีข้อมูล > 0)
+    const mainBody = document.getElementById('tag-main-ingredients-body');
+    const mainCol = document.getElementById('tag-col-main-ingredients');
+    let mainValidCount = 0;
 
-    const elWater = document.getElementById('tag-water');
-    if (elWater) elWater.textContent = `${mainWaterPerTank.toFixed(1)} / ${mainWaterTotal.toFixed(1)} ลิตร`;
+    if (mainBody) {
+      mainBody.innerHTML = '';
+      const mainItems = [
+        { name: 'โซเดียมเมตาไบซัลไฟต์', perTank: sodiumPerTank, total: totalSodium, unit: 'กรัม' },
+        { name: 'ปริมาณน้ำที่ใช้', perTank: mainWaterPerTank, total: mainWaterTotal, unit: 'ลิตร' },
+        { name: 'ข้าวดิบ', perTank: rawRicePerTank, total: rawRiceTotal, unit: 'Kg' },
+        { name: 'ข้าวสุก', perTank: cookedRicePerTank, total: cookedRiceTotal, unit: 'Kg' },
+        { name: 'ข้าวโพดดิบ', perTank: rawCornPerTank, total: rawCornTotal, unit: 'Kg' },
+        { name: 'ข้าวโพดสุก', perTank: cookedCornPerTank, total: cookedCornTotal, unit: 'Kg' },
+        { name: 'น้ำตาลทรายแดง', perTank: sugarPerTank, total: sugarTotal, unit: 'Kg' },
+        { name: 'ลูกแป้ง', perTank: lookpangPerTank, total: totalLookpang, unit: 'กรัม' },
+        { name: 'ยีสต์', perTank: yeastPerTank, total: totalYeast, unit: 'กรัม' },
+        { name: 'เอนไซม์', perTank: enzymePerTank, total: totalEnzyme, unit: 'ลิตร' }
+      ];
 
-    const elRawRice = document.getElementById('tag-raw-rice');
-    if (elRawRice) elRawRice.textContent = rawRiceTotal > 0 ? `${rawRicePerTank.toFixed(1)} / ${rawRiceTotal.toFixed(1)} Kg` : '-';
+      // Filter only items where total > 0
+      const validMain = mainItems.filter(item => item.total > 0.001);
 
-    const elCookedRice = document.getElementById('tag-cooked-rice');
-    if (elCookedRice) elCookedRice.textContent = cookedRiceTotal > 0 ? `${cookedRicePerTank.toFixed(1)} / ${cookedRiceTotal.toFixed(1)} Kg` : '-';
+      // Append custom ingredients from autoIngredients if present and not duplicated
+      if (raw.autoIngredients && Array.isArray(raw.autoIngredients)) {
+        raw.autoIngredients.forEach(item => {
+          const q = parseFloat(item.qty) || 0;
+          if (q > 0.001 && item.name) {
+            const already = mainItems.some(m => m.name === item.name || (item.name.includes('โซเดียม') && m.name.includes('โซเดียม')) || (item.name.includes('ลูกแป้ง') && m.name.includes('ลูกแป้ง')) || (item.name === 'ยีสต์' && m.name === 'ยีสต์') || (item.name === 'เอนไซม์' && m.name === 'เอนไซม์') || (item.name.includes('น้ำตาล') && m.name.includes('น้ำตาล')) || (item.name.includes('ข้าวเหนียว') && m.name.includes('ข้าว')) || (item.name.includes('ข้าวหอม') && m.name.includes('ข้าว')) || (item.name.includes('ข้าวโพด') && m.name.includes('ข้าวโพด')));
+            if (!already) {
+              const perT = q / tanks;
+              validMain.push({ name: item.name, perTank: perT, total: q, unit: item.unit || '' });
+            }
+          }
+        });
+      }
 
-    const elRawCorn = document.getElementById('tag-raw-corn');
-    if (elRawCorn) elRawCorn.textContent = rawCornTotal > 0 ? `${rawCornPerTank.toFixed(1)} / ${rawCornTotal.toFixed(1)} Kg` : '-';
+      validMain.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #eee';
+        tr.innerHTML = `<td style="padding: 3px 4px; color: #444;">${item.name}:</td><td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;">${item.perTank.toFixed(1)} / ${item.total.toFixed(1)} ${item.unit}</td>`;
+        mainBody.appendChild(tr);
+      });
 
-    const elCookedCorn = document.getElementById('tag-cooked-corn');
-    if (elCookedCorn) elCookedCorn.textContent = cookedCornTotal > 0 ? `${cookedCornPerTank.toFixed(1)} / ${cookedCornTotal.toFixed(1)} Kg` : '-';
+      mainValidCount = validMain.length;
+      if (mainCol) mainCol.style.display = mainValidCount > 0 ? '' : 'none';
+    }
 
-    const elSugar = document.getElementById('tag-sugar');
-    if (elSugar) elSugar.textContent = sugarTotal > 0 ? `${sugarPerTank.toFixed(1)} / ${sugarTotal.toFixed(1)} Kg` : '-';
+    // Render Section 2: เอนไซม์ที่ใช้เตรียมทำตัวเอนไซม์แยก (เฉพาะถ้ามีข้อมูล > 0)
+    const enzBody = document.getElementById('tag-enz-ingredients-body');
+    const enzCol = document.getElementById('tag-col-enzyme-prep');
+    const tablesContainer = document.getElementById('tag-tables-container');
+    let hasEnzData = false;
 
-    const elLookpang = document.getElementById('tag-lookpang');
-    if (elLookpang) elLookpang.textContent = `${lookpangPerTank.toFixed(1)} / ${totalLookpang.toFixed(1)} กรัม`;
+    if (enzBody) {
+      enzBody.innerHTML = '';
+      const enzItems = [
+        { name: 'น้ำที่ทำเอนไซม์', val: waterEnz, unit: 'ลิตร' },
+        { name: 'เอนไซม์ที่เตรียม', val: enzymeG, unit: 'กรัม' },
+        { name: 'ยีสต์ที่ใช้', val: yeastG, unit: 'กรัม' },
+        { name: 'แคลเซียมซัลไฟต์', val: calSulfiteG, unit: 'กรัม' },
+        { name: 'น้ำตาลทรายที่ใช้', val: sugarKg, unit: 'Kg' }
+      ];
 
-    const elYeast = document.getElementById('tag-yeast');
-    if (elYeast) elYeast.textContent = `${yeastPerTank.toFixed(1)} / ${totalYeast.toFixed(1)} กรัม`;
+      const validEnz = enzItems.filter(item => item.val > 0.001);
+      if (validEnz.length > 0) {
+        hasEnzData = true;
+        validEnz.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid #eee';
+          tr.innerHTML = `<td style="padding: 3px 4px; color: #444;">${item.name}:</td><td style="padding: 3px 4px; text-align: right; font-weight: 700; color: #000;">${item.val.toFixed(1)} ${item.unit}</td>`;
+          enzBody.appendChild(tr);
+        });
+      }
+    }
 
-    const elEnzyme = document.getElementById('tag-enzyme');
-    if (elEnzyme) elEnzyme.textContent = `${enzymePerTank.toFixed(1)} / ${totalEnzyme.toFixed(1)} ลิตร`;
+    if (enzCol) {
+      enzCol.style.display = hasEnzData ? '' : 'none';
+    }
 
-    // Populate Section 2: เอนไซม์ที่ใช้เตรียมทำตัวเอนไซม์แยก
-    const elEnzWater = document.getElementById('tag-enz-water');
-    if (elEnzWater) elEnzWater.textContent = `${waterEnz.toFixed(1)} ลิตร`;
-
-    const elEnzPrep = document.getElementById('tag-enz-prep');
-    if (elEnzPrep) elEnzPrep.textContent = `${enzymeG.toFixed(1)} กรัม`;
-
-    const elEnzYeast = document.getElementById('tag-enz-yeast');
-    if (elEnzYeast) elEnzYeast.textContent = `${yeastG.toFixed(1)} กรัม`;
-
-    const elEnzCalSulfite = document.getElementById('tag-enz-calsulfite');
-    if (elEnzCalSulfite) elEnzCalSulfite.textContent = `${calSulfiteG.toFixed(1)} กรัม`;
-
-    const elEnzSugar = document.getElementById('tag-enz-sugar');
-    if (elEnzSugar) elEnzSugar.textContent = `${sugarKg.toFixed(1)} Kg`;
+    if (tablesContainer) {
+      if (mainValidCount === 0 && !hasEnzData) {
+        tablesContainer.style.display = 'none';
+      } else {
+        tablesContainer.style.display = 'grid';
+        if (hasEnzData) {
+          tablesContainer.classList.add('has-enzyme');
+          tablesContainer.classList.remove('no-enzyme');
+          tablesContainer.style.gridTemplateColumns = '1.15fr 0.85fr';
+        } else {
+          tablesContainer.classList.add('no-enzyme');
+          tablesContainer.classList.remove('has-enzyme');
+          tablesContainer.style.gridTemplateColumns = '1fr';
+        }
+      }
+    }
 
     // Generate QR Code containing URL to open the batch directly
     const directUrl = `${window.location.origin}${window.location.pathname}#batch-${batch.ID}`;
@@ -5514,12 +5575,24 @@ window.google = {
       color: #222 !important;
     }
     .tag-tables-container {
-      display: grid !important;
-      grid-template-columns: 1.15fr 0.85fr !important;
-      gap: 1.5rem !important;
       margin-top: 10px !important;
       padding-top: 8px !important;
       border-top: 2px solid #000 !important;
+    }
+    .tag-tables-container.has-enzyme {
+      display: grid !important;
+      grid-template-columns: 1.15fr 0.85fr !important;
+      gap: 1.5rem !important;
+    }
+    .tag-tables-container.no-enzyme {
+      display: block !important;
+      width: 100% !important;
+    }
+    .tag-tables-container.no-enzyme .tag-table-col-right {
+      display: none !important;
+    }
+    .tag-tables-container.no-enzyme .tag-table-col-left {
+      width: 100% !important;
     }
     .tag-table-col-left {
       min-width: 0 !important;

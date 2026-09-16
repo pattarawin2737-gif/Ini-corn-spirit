@@ -1761,12 +1761,24 @@
       color: #222 !important;
     }
     .tag-tables-container {
-      display: grid !important;
-      grid-template-columns: 1.15fr 0.85fr !important;
-      gap: 1.5rem !important;
       margin-top: 10px !important;
       padding-top: 8px !important;
       border-top: 2px solid #000 !important;
+    }
+    .tag-tables-container.has-enzyme {
+      display: grid !important;
+      grid-template-columns: 1.15fr 0.85fr !important;
+      gap: 1.5rem !important;
+    }
+    .tag-tables-container.no-enzyme {
+      display: block !important;
+      width: 100% !important;
+    }
+    .tag-tables-container.no-enzyme .tag-table-col-right {
+      display: none !important;
+    }
+    .tag-tables-container.no-enzyme .tag-table-col-left {
+      width: 100% !important;
     }
     .tag-table-col-left {
       min-width: 0 !important;

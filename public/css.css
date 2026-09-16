@@ -769,7 +769,9 @@
   .inline-days-input::-webkit-outer-spin-button,
   .inline-days-input::-webkit-inner-spin-button,
   .inline-sales-input::-webkit-outer-spin-button,
-  .inline-sales-input::-webkit-inner-spin-button {
+  .inline-sales-input::-webkit-inner-spin-button,
+  .inline-distill-vol-input::-webkit-outer-spin-button,
+  .inline-distill-vol-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
@@ -779,7 +781,8 @@
     text-align: center;
     padding: 0.25rem 0.25rem !important;
   }
-  .inline-sales-input {
+  .inline-sales-input,
+  .inline-distill-vol-input {
     -moz-appearance: textfield;
     appearance: textfield;
   }

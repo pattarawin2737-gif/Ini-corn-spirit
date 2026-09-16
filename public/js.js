@@ -3102,6 +3102,34 @@ window.google = {
           `;
         }
 
+        // Distilled / Fermented / Brewed actual volume input
+        let distillVolHtml = '';
+        if (typeFilter !== 'โซดา') {
+          const isDistilledOrFermented = typeFilter === 'สุรากลั่น' || typeFilter === 'สุราหมัก' || isFermented;
+          const volLabel = isDistilledOrFermented ? 'ปริมาณการกลั่นที่ได้จริง:' : 'ปริมาณการหมักที่ได้จริง:';
+          const titleHint = isDistilledOrFermented ? 'กรอกปริมาณการกลั่นที่ได้จริง (ลิตร)' : 'กรอกปริมาณการหมักที่ได้จริง (ลิตร)';
+          const currentDistillVol = (raw.distillVolReal !== undefined && raw.distillVolReal !== null && raw.distillVolReal !== '') 
+            ? parseFloat(raw.distillVolReal) 
+            : '';
+
+          distillVolHtml = `
+            <div class="batch-info-row" style="align-items: center; padding: 0.35rem 0;">
+              <span class="batch-info-label" style="font-weight: 500;">${volLabel}</span>
+              <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                <input type="number" class="input-control inline-distill-vol-input" 
+                       data-id="${batch.ID}"
+                       value="${currentDistillVol !== '' ? Number(currentDistillVol) : ''}" 
+                       placeholder="0.0" 
+                       step="any" min="0"
+                       style="width: 110px; padding: 0.25rem 0.5rem; font-size: 0.85rem; text-align: right; border-radius: 6px; color: var(--color-amber); font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); -moz-appearance: textfield; appearance: textfield;"
+                       onkeydown="if(event.key==='Enter'){event.preventDefault(); this.closest('.batch-item-card, .batch-card').querySelector('.inline-save-btn').click();}"
+                       title="${titleHint} แล้วกดปุ่มบันทึก">
+                <span style="color: var(--color-amber); font-weight: 600; font-size: 0.85rem;">ลิตร</span>
+              </div>
+            </div>
+          `;
+        }
+
         // Additional information for soda
         let sodaDetailsHtml = '';
         if (typeFilter === 'โซดา') {
@@ -3189,6 +3217,7 @@ window.google = {
             <span class="batch-info-value">${netCost}</span>
           </div>
           ${sodaDetailsHtml}
+          ${distillVolHtml}
           ${salesProfitHtml}
           ${optionalDatesHtml}
 
@@ -3284,6 +3313,12 @@ window.google = {
               expectedSales = parseFloat(salesInput.value) || 0;
             }
 
+            let distillVolReal = null;
+            const distillVolInput = card.querySelector('.inline-distill-vol-input');
+            if (distillVolInput && distillVolInput.value.trim() !== '') {
+              distillVolReal = parseFloat(distillVolInput.value) || 0;
+            }
+
             showLoader('กำลังบันทึกข้อมูล...');
             google.script.run.withSuccessHandler(function(res) {
               showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
@@ -3293,7 +3328,7 @@ window.google = {
             }).withFailureHandler(function(err) {
               hideLoader();
               showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (err.message || err.toString()), 'error');
-            }).updateBatchStatus(id, newStatus, fermentationDays, testResult, loggedInUsername, expectedSales);
+            }).updateBatchStatus(id, newStatus, fermentationDays, testResult, loggedInUsername, expectedSales, distillVolReal);
           };
         }
 

@@ -8,6 +8,7 @@ export async function onRequestPost(context) {
     const testResult = body.args && body.args[3];
     const username = body.args && body.args[4];
     const expectedSales = body.args && body.args[5];
+    const distillVolReal = body.args && body.args[6];
 
     if (!id) {
       return new Response(JSON.stringify(false), {
@@ -76,6 +77,9 @@ export async function onRequestPost(context) {
     }
     if (expectedSales !== undefined && expectedSales !== null && expectedSales !== '') {
       rawObj.expectedSales = parseFloat(expectedSales) || 0;
+    }
+    if (distillVolReal !== undefined && distillVolReal !== null && distillVolReal !== '') {
+      rawObj.distillVolReal = parseFloat(distillVolReal) || 0;
     }
     rawObj.UpdatedAt = now;
 

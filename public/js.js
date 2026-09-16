@@ -5103,15 +5103,16 @@ window.google = {
 
     // Formula & Target
     let formulaName = 'สูตรมาตรฐาน';
+    const tagTargetEl = document.getElementById('tag-batch-target');
     if (isSoda) {
       formulaName = raw.flavourType ? `คราฟต์โซดา (${raw.flavourType})` : 'คราฟต์โซดา';
-      document.getElementById('tag-batch-target').textContent = `${raw.brix || 0} → ${raw.brixFinal || 0} Brix`;
+      if (tagTargetEl) tagTargetEl.textContent = `${raw.brix || 0} → ${raw.brixFinal || 0} Brix`;
     } else {
       const fNum = parseInt(batch.FormulaType) || 1;
       const fNames = { 1: 'สูตรที่ 1: ข้าวเหนียวดั้งเดิม', 2: 'สูตรที่ 2: น้ำตาล+ข้าว', 3: 'สูตรที่ 3: ผลไม้หลัก', 4: 'สูตรที่ 4: น้ำผลไม้ล้วน', 5: 'สูตรที่ 5: ข้าวโพด' };
       formulaName = fNames[fNum] || `สูตรที่ ${fNum}`;
       const targetDeg = raw.adjTargetDeg || (raw.formulaInputs && raw.formulaInputs.f1TargetDegree) || 40;
-      document.getElementById('tag-batch-target').textContent = `${targetDeg}° (${raw.distillVolReal || 0} ลิตร)`;
+      if (tagTargetEl) tagTargetEl.textContent = `${targetDeg}° (${raw.distillVolReal || 0} ลิตร)`;
     }
     document.getElementById('tag-batch-formula').textContent = formulaName;
 

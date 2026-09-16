@@ -1559,7 +1559,7 @@
       
       if (currentFormulaId === 5) {
         defaults.push({ name: 'ข้าวเหนียว กข6', qty: fo.stickyRiceTotal || 0, unit: 'Kg', price: 0 });
-        defaults.push({ name: 'ข้าวโพด', qty: fo.cornTotal || 0, unit: 'Kg', price: 0 });
+        defaults.push({ name: 'ข้าวโพดหวาน', qty: fo.cornTotal || 0, unit: 'Kg', price: ((fo.cornTotal || 0) * 24) });
         defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: ((fo.plainRiceTotal || 0) * 18) });
       }
 

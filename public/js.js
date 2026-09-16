@@ -5096,10 +5096,18 @@ window.google = {
     document.getElementById('tag-batch-type-badge').textContent = type;
     document.getElementById('tag-batch-user').textContent = batch.Username || loggedInUsername || '-';
 
-    // Dates
+    // Dates & Days
     document.getElementById('tag-batch-start-date').textContent = batch.Date || '-';
     const endDate = raw.dateFermentEnd || raw.dateEnd || '-';
     document.getElementById('tag-batch-end-date').textContent = endDate;
+
+    const fermentDays = (batch && batch.FermentationDays !== undefined && batch.FermentationDays !== null && batch.FermentationDays !== '')
+      ? batch.FermentationDays
+      : (raw.FermentationDays || raw.fermentationDays || raw.fermentDays || 0);
+    const tagBatchDaysEl = document.getElementById('tag-batch-days');
+    if (tagBatchDaysEl) {
+      tagBatchDaysEl.textContent = `${fermentDays} วัน`;
+    }
 
     // Formula & Target
     let formulaName = 'สูตรมาตรฐาน';

@@ -3080,6 +3080,10 @@ window.google = {
             : (expectedSales > 0 ? expectedSales : '');
 
           salesProfitHtml = `
+            <div class="batch-info-row" style="padding-top: 0.25rem;">
+              <span class="batch-info-label">ยอดกำไรคงเหลือ:</span>
+              <span class="batch-info-value inline-profit-display" style="color: ${profit >= 0 ? 'var(--color-emerald)' : '#ef4444'}; font-weight: 600;">${profit.toFixed(1)} ฿</span>
+            </div>
             <div class="batch-info-row" style="align-items: center; padding: 0.35rem 0;">
               <span class="batch-info-label" style="font-weight: 500;">ยอดขายคาดการณ์:</span>
               <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
@@ -3095,10 +3099,6 @@ window.google = {
                        title="กรอกยอดขายคาดการณ์ แล้วกดปุ่มบันทึก">
                 <span style="color: var(--color-cyan); font-weight: 600; font-size: 0.85rem;">฿</span>
               </div>
-            </div>
-            <div class="batch-info-row" style="padding-top: 0.25rem;">
-              <span class="batch-info-label">ยอดกำไรคงเหลือ:</span>
-              <span class="batch-info-value inline-profit-display" style="color: ${profit >= 0 ? 'var(--color-emerald)' : '#ef4444'}; font-weight: 600;">${profit.toFixed(1)} ฿</span>
             </div>
           `;
         }
@@ -3218,10 +3218,10 @@ window.google = {
             <span class="batch-info-value">${netCost}</span>
           </div>
           ${sodaDetailsHtml}
+          ${salesProfitHtml}
           ${fermentDatesHtml}
           ${distillVolHtml}
           ${postFermentHtml}
-          ${salesProfitHtml}
 
           <div class="grid-2" style="margin-top: 0.25rem; gap: 0.5rem; align-items: flex-end;">
             <div class="form-group" style="margin-bottom: 0;">

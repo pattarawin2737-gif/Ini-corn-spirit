@@ -4009,14 +4009,7 @@ window.google = {
         const stockItem = findMatchingStockItem(name, stockItems);
 
         if (!stockItem) {
-          shortages.push({
-            name: name,
-            required: rawQty,
-            available: 0,
-            missing: rawQty,
-            unit: unit || 'หน่วย',
-            reason: 'ไม่พบในคลังสินค้า'
-          });
+          // หากไม่มีรายการนี้ในคลังสินค้า ให้ข้ามไป ไม่ต้องนำมาแจ้งเตือน
           return;
         }
 
@@ -4062,14 +4055,7 @@ window.google = {
 
           const stockItem = findMatchingStockItem(name, ingredientStockData);
           if (!stockItem) {
-            shortages.push({
-              name: name,
-              required: rawQty,
-              available: 0,
-              missing: rawQty,
-              unit: unit || 'หน่วย',
-              reason: 'ไม่พบในคลังสินค้า'
-            });
+            // หากไม่มีรายการนี้ในคลังสินค้า ให้ข้ามไป ไม่ต้องนำมาแจ้งเตือน
             return;
           }
 
@@ -4121,7 +4107,6 @@ window.google = {
       tr.innerHTML = `
         <td style="padding: 0.6rem 0.75rem; font-weight: 500; color: #fff;">
           ${item.name}
-          ${item.reason === 'ไม่พบในคลังสินค้า' ? '<span style="display:block; font-size:0.72rem; color:#f87171;">⚠️ ยังไม่มีรายการนี้ในคลังสินค้า</span>' : ''}
         </td>
         <td style="padding: 0.6rem 0.5rem; text-align: right; color: var(--text-secondary);">
           ${formatNum(item.required)} ${item.unit}

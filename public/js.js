@@ -2385,57 +2385,75 @@ window.google = {
       rawData.stockDeducted = false;
     }
 
-    const isNewBatch = !editingBatchId;
-    google.script.run.withSuccessHandler(function(savedObj) {
-      if (savedObj && savedObj.error) {
-        hideLoader();
-        showToast(savedObj.error, 'error');
-        return;
-      }
-      showToast(editingBatchId ? 'อัปเดตข้อมูลสุราเรียบร้อยแล้ว' : 'บันทึกสูตรสุราเสร็จสมบูรณ์', 'success');
-      const type = document.getElementById('batch-type').value;
-      const statusVal = document.getElementById('batch-status').value;
+    const allIngredientsToDeduct = [
+      ...autoIngredients,
+      ...collectedCustomIngredients,
+      ...collectedCustomAddons
+    ];
 
-      // 1. Auto Stock Deduction
-      if (shouldDeductOnSave && savedObj && savedObj.ID) {
-        const allIngredientsToDeduct = [
-          ...autoIngredients,
-          ...collectedCustomIngredients,
-          ...collectedCustomAddons
-        ];
-        if (allIngredientsToDeduct.length > 0) {
-          google.script.run.withSuccessHandler(function(deductRes) {
-            if (deductRes && deductRes.deductedCount > 0) {
-              showToast(`ตัดสต๊อกวัตถุดิบอัตโนมัติ ${deductRes.deductedCount} รายการเรียบร้อยแล้ว`, 'info');
-            }
-          }).deductBatchStock(savedObj.ID, savedObj.Title, allIngredientsToDeduct, loggedInUsername);
+    const executeSaveBatch = function() {
+      showLoader('กำลังบันทึกข้อมูล...');
+      const isNewBatch = !editingBatchId;
+      google.script.run.withSuccessHandler(function(savedObj) {
+        if (savedObj && savedObj.error) {
+          hideLoader();
+          showToast(savedObj.error, 'error');
+          return;
         }
-      } else if (autoDeduct && !wasStockDeducted && isWaitingStatus) {
-        showToast('บันทึกสูตรสุราแล้ว (สถานะรอหมัก - ระบบจะตัดสต๊อกอัตโนมัติเมื่อเริ่มหมัก)', 'info');
-      }
+        showToast(editingBatchId ? 'อัปเดตข้อมูลสุราเรียบร้อยแล้ว' : 'บันทึกสูตรสุราเสร็จสมบูรณ์', 'success');
+        const type = document.getElementById('batch-type').value;
+        const statusVal = document.getElementById('batch-status').value;
 
-      // 2. Telegram Alert
-      sendTelegramBatchCreatedAlert(savedObj || batchObj, type, statusVal);
+        // 1. Auto Stock Deduction
+        if (shouldDeductOnSave && savedObj && savedObj.ID) {
+          if (allIngredientsToDeduct.length > 0) {
+            google.script.run.withSuccessHandler(function(deductRes) {
+              if (deductRes && deductRes.deductedCount > 0) {
+                showToast(`ตัดสต๊อกวัตถุดิบอัตโนมัติ ${deductRes.deductedCount} รายการเรียบร้อยแล้ว`, 'info');
+              }
+            }).deductBatchStock(savedObj.ID, savedObj.Title, allIngredientsToDeduct, loggedInUsername);
+          }
+        } else if (autoDeduct && !wasStockDeducted && isWaitingStatus) {
+          showToast('บันทึกสูตรสุราแล้ว (สถานะรอหมัก - ระบบจะตัดสต๊อกอัตโนมัติเมื่อเริ่มหมัก)', 'info');
+        }
 
-      resetFormToNew();
-      fetchBatches(false);
-      
-      // Auto-switch to the updated status sub-tab
-      autoSwitchSubTabAfterStatusUpdate(statusVal);
+        // 2. Telegram Alert
+        sendTelegramBatchCreatedAlert(savedObj || batchObj, type, statusVal);
 
-      // Navigate back to the appropriate spirits type section
-      if (type === 'สุราแช่') {
-        navigateToSection('brewed-spirits');
-      } else if (type === 'สุราหมัก') {
-        navigateToSection('fermented-spirits');
-      } else {
-        navigateToSection('distilled-spirits');
-      }
-    }).withFailureHandler(function(err) {
-      hideLoader();
-      const msg = (err && err.message) ? err.message : (typeof err === 'string' ? err : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-      showToast(msg, 'error');
-    }).saveBatch(batchObj);
+        resetFormToNew();
+        fetchBatches(false);
+        
+        // Auto-switch to the updated status sub-tab
+        autoSwitchSubTabAfterStatusUpdate(statusVal);
+
+        // Navigate back to the appropriate spirits type section
+        if (type === 'สุราแช่') {
+          navigateToSection('brewed-spirits');
+        } else if (type === 'สุราหมัก') {
+          navigateToSection('fermented-spirits');
+        } else {
+          navigateToSection('distilled-spirits');
+        }
+      }).withFailureHandler(function(err) {
+        hideLoader();
+        const msg = (err && err.message) ? err.message : (typeof err === 'string' ? err : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        showToast(msg, 'error');
+      }).saveBatch(batchObj);
+    };
+
+    if (shouldDeductOnSave && allIngredientsToDeduct.length > 0) {
+      checkBatchStockSufficiency(allIngredientsToDeduct, function(checkResult) {
+        if (!checkResult.isSufficient) {
+          hideLoader();
+          showStockShortageModal(checkResult.shortages);
+          return;
+        }
+        executeSaveBatch();
+      });
+      return;
+    }
+
+    executeSaveBatch();
   }
 
   // Load a batch's state back into the creator form for editing
@@ -3395,23 +3413,41 @@ window.google = {
               ];
             }
 
-            showLoader(isEnteringFermentation ? 'กำลังบันทึกสถานะและตัดสต๊อกวัตถุดิบ...' : 'กำลังบันทึกข้อมูล...');
-            google.script.run.withSuccessHandler(function(res) {
-              showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
-              if (isEnteringFermentation && ingredientsToDeduct.length > 0) {
-                google.script.run.withSuccessHandler(function(deductRes) {
-                  if (deductRes && deductRes.deductedCount > 0) {
-                    showToast(`📦 ตัดสต๊อกวัตถุดิบอัตโนมัติ ${deductRes.deductedCount} รายการเรียบร้อยแล้ว (สถานะ: ${newStatus})`, 'info');
-                  }
-                }).deductBatchStock(id, (currentBatch ? currentBatch.Title : id), ingredientsToDeduct, loggedInUsername);
-              }
-              sendTelegramStatusChangedAlert(id, newStatus, fermentationDays);
-              autoSwitchSubTabAfterStatusUpdate(newStatus);
-              fetchBatches(false);
-            }).withFailureHandler(function(err) {
-              hideLoader();
-              showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (err.message || err.toString()), 'error');
-            }).updateBatchStatus(id, newStatus, fermentationDays, testResult, loggedInUsername, expectedSales, distillVolReal, extraRaw);
+            const doActualUpdateStatus = function() {
+              showLoader(isEnteringFermentation ? 'กำลังบันทึกสถานะและตัดสต๊อกวัตถุดิบ...' : 'กำลังบันทึกข้อมูล...');
+              google.script.run.withSuccessHandler(function(res) {
+                showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+                if (isEnteringFermentation && ingredientsToDeduct.length > 0) {
+                  google.script.run.withSuccessHandler(function(deductRes) {
+                    if (deductRes && deductRes.deductedCount > 0) {
+                      showToast(`📦 ตัดสต๊อกวัตถุดิบอัตโนมัติ ${deductRes.deductedCount} รายการเรียบร้อยแล้ว (สถานะ: ${newStatus})`, 'info');
+                    }
+                  }).deductBatchStock(id, (currentBatch ? currentBatch.Title : id), ingredientsToDeduct, loggedInUsername);
+                }
+                sendTelegramStatusChangedAlert(id, newStatus, fermentationDays);
+                autoSwitchSubTabAfterStatusUpdate(newStatus);
+                fetchBatches(false);
+              }).withFailureHandler(function(err) {
+                hideLoader();
+                showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (err.message || err.toString()), 'error');
+              }).updateBatchStatus(id, newStatus, fermentationDays, testResult, loggedInUsername, expectedSales, distillVolReal, extraRaw);
+            };
+
+            if (isEnteringFermentation && ingredientsToDeduct.length > 0) {
+              checkBatchStockSufficiency(ingredientsToDeduct, function(checkResult) {
+                if (!checkResult.isSufficient) {
+                  // Reset select dropdown back to currentBatch.Status
+                  statusSelect.value = currentBatch ? currentBatch.Status : 'รอหมักสุรากลั่น';
+                  hideLoader();
+                  showStockShortageModal(checkResult.shortages);
+                  return; // STOP!
+                }
+                doActualUpdateStatus();
+              });
+              return;
+            }
+
+            doActualUpdateStatus();
           };
         }
 
@@ -3893,6 +3929,225 @@ window.google = {
         alert('ไม่สามารถเชื่อมต่อกับ Google Sheet นี้ได้: ' + res.message);
       }
     }).setSpreadsheetId(targetId);
+  }
+
+  // --- INGREDIENT STOCK SUFFICIENCY VALIDATION ---
+  function findMatchingStockItem(ingredientName, stockList) {
+    const iName = (ingredientName || "").trim().toLowerCase();
+    if (!iName || !Array.isArray(stockList)) return null;
+
+    // 1. Exact match
+    let found = stockList.find(s => (s.Name || "").trim().toLowerCase() === iName);
+    if (found) return found;
+
+    // 2. Substring match
+    found = stockList.find(s => {
+      const sName = (s.Name || "").trim().toLowerCase();
+      return sName.includes(iName) || iName.includes(sName);
+    });
+    if (found) return found;
+
+    // 3. Clean match (remove parentheses, common prefixes)
+    const cleanI = iName.replace(/\(.*?\)/g, '').replace(/ข้าวดิบ/g, '').replace(/วัตถุดิบ[^:]*:/g, '').trim();
+    if (cleanI.length >= 2) {
+      found = stockList.find(s => {
+        const cleanS = (s.Name || "").trim().toLowerCase().replace(/\(.*?\)/g, '').replace(/ข้าวดิบ/g, '').trim();
+        return cleanS.includes(cleanI) || cleanI.includes(cleanS);
+      });
+    }
+    return found || null;
+  }
+
+  function convertStockUnit(rawQty, itemUnit, stockUnit) {
+    const iUnit = (itemUnit || "").trim().toLowerCase();
+    const sUnit = (stockUnit || "").trim().toLowerCase();
+    let qty = parseFloat(rawQty) || 0;
+
+    const isGram = u => (u === 'กรัม' || u === 'g' || u === 'gram' || u === 'g.');
+    const isKg = u => (u === 'กก.' || u === 'กก' || u === 'kg' || u === 'กิโลกรัม' || u === 'kilo' || u === 'kilogram');
+    const isMl = u => (u === 'มล.' || u === 'ml' || u === 'มิลลิลิตร');
+    const isLiter = u => (u === 'ลิตร' || u === 'l' || u === 'liter' || u === 'liters');
+
+    if (isGram(iUnit) && isKg(sUnit)) {
+      return qty / 1000.0;
+    }
+    if (isKg(iUnit) && isGram(sUnit)) {
+      return qty * 1000.0;
+    }
+    if (isMl(iUnit) && isLiter(sUnit)) {
+      return qty / 1000.0;
+    }
+    if (isLiter(iUnit) && isMl(sUnit)) {
+      return qty * 1000.0;
+    }
+    return qty;
+  }
+
+  function checkBatchStockSufficiency(ingredientsList, callback) {
+    if (!loggedInUsername) {
+      callback({ isSufficient: true, shortages: [] });
+      return;
+    }
+
+    showLoader('กำลังตรวจสอบสต๊อกวัตถุดิบคงเหลือในคลัง...');
+    google.script.run.withSuccessHandler(function(stockItems) {
+      hideLoader();
+      stockItems = stockItems || [];
+
+      const shortages = [];
+      const allocatedFromStock = {};
+
+      (ingredientsList || []).forEach(item => {
+        const name = (item.name || "").trim();
+        const rawQty = parseFloat(item.qty) || 0;
+        const unit = (item.unit || "").trim();
+        if (!name || rawQty <= 0) return;
+
+        // Skip water / liquids not in warehouse inventory
+        if (name.includes('น้ำที่ใช้') || name === 'น้ำ' || name === 'น้ำเปล่า') return;
+
+        const stockItem = findMatchingStockItem(name, stockItems);
+
+        if (!stockItem) {
+          shortages.push({
+            name: name,
+            required: rawQty,
+            available: 0,
+            missing: rawQty,
+            unit: unit || 'หน่วย',
+            reason: 'ไม่พบในคลังสินค้า'
+          });
+          return;
+        }
+
+        const sUnit = (stockItem.Unit || unit || "").trim();
+        const reqInStockUnit = convertStockUnit(rawQty, unit, sUnit);
+        const currentStockQty = parseFloat(stockItem.Quantity) || 0;
+        const alreadyAllocated = allocatedFromStock[stockItem.ID] || 0;
+        const remainingStock = Math.max(0, currentStockQty - alreadyAllocated);
+
+        if (remainingStock < reqInStockUnit - 0.0001) {
+          const missingInStockUnit = reqInStockUnit - remainingStock;
+          shortages.push({
+            name: stockItem.Name || name,
+            required: reqInStockUnit,
+            available: remainingStock,
+            missing: missingInStockUnit,
+            unit: sUnit,
+            reason: 'สต๊อกมีไม่พอ'
+          });
+          allocatedFromStock[stockItem.ID] = currentStockQty;
+        } else {
+          allocatedFromStock[stockItem.ID] = alreadyAllocated + reqInStockUnit;
+        }
+      });
+
+      callback({
+        isSufficient: shortages.length === 0,
+        shortages: shortages
+      });
+    }).withFailureHandler(function(err) {
+      hideLoader();
+      console.warn('Could not check stock from backend:', err);
+      if (ingredientStockData && ingredientStockData.length > 0) {
+        const shortages = [];
+        const allocatedFromStock = {};
+
+        (ingredientsList || []).forEach(item => {
+          const name = (item.name || "").trim();
+          const rawQty = parseFloat(item.qty) || 0;
+          const unit = (item.unit || "").trim();
+          if (!name || rawQty <= 0) return;
+          if (name.includes('น้ำที่ใช้') || name === 'น้ำ' || name === 'น้ำเปล่า') return;
+
+          const stockItem = findMatchingStockItem(name, ingredientStockData);
+          if (!stockItem) {
+            shortages.push({
+              name: name,
+              required: rawQty,
+              available: 0,
+              missing: rawQty,
+              unit: unit || 'หน่วย',
+              reason: 'ไม่พบในคลังสินค้า'
+            });
+            return;
+          }
+
+          const sUnit = (stockItem.Unit || unit || "").trim();
+          const reqInStockUnit = convertStockUnit(rawQty, unit, sUnit);
+          const currentStockQty = parseFloat(stockItem.Quantity) || 0;
+          const alreadyAllocated = allocatedFromStock[stockItem.ID] || 0;
+          const remainingStock = Math.max(0, currentStockQty - alreadyAllocated);
+
+          if (remainingStock < reqInStockUnit - 0.0001) {
+            const missingInStockUnit = reqInStockUnit - remainingStock;
+            shortages.push({
+              name: stockItem.Name || name,
+              required: reqInStockUnit,
+              available: remainingStock,
+              missing: missingInStockUnit,
+              unit: sUnit,
+              reason: 'สต๊อกมีไม่พอ'
+            });
+            allocatedFromStock[stockItem.ID] = currentStockQty;
+          } else {
+            allocatedFromStock[stockItem.ID] = alreadyAllocated + reqInStockUnit;
+          }
+        });
+
+        callback({
+          isSufficient: shortages.length === 0,
+          shortages: shortages
+        });
+      } else {
+        callback({ isSufficient: true, shortages: [] });
+      }
+    }).getIngredientStock(loggedInUsername);
+  }
+
+  function showStockShortageModal(shortages) {
+    const tbody = document.getElementById('stock-shortage-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const formatNum = (n) => {
+      const val = parseFloat(n) || 0;
+      return val.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    };
+
+    shortages.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
+      tr.innerHTML = `
+        <td style="padding: 0.6rem 0.75rem; font-weight: 500; color: #fff;">
+          ${item.name}
+          ${item.reason === 'ไม่พบในคลังสินค้า' ? '<span style="display:block; font-size:0.72rem; color:#f87171;">⚠️ ยังไม่มีรายการนี้ในคลังสินค้า</span>' : ''}
+        </td>
+        <td style="padding: 0.6rem 0.5rem; text-align: right; color: var(--text-secondary);">
+          ${formatNum(item.required)} ${item.unit}
+        </td>
+        <td style="padding: 0.6rem 0.5rem; text-align: right; color: ${item.available > 0 ? '#38bdf8' : 'var(--text-muted)'};">
+          ${formatNum(item.available)} ${item.unit}
+        </td>
+        <td style="padding: 0.6rem 0.75rem; text-align: right; font-weight: 700; color: #f87171;">
+          -${formatNum(item.missing)} ${item.unit}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const modal = document.getElementById('stock-shortage-modal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeStockShortageModal() {
+    const modal = document.getElementById('stock-shortage-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function goToInventoryStock() {
+    closeStockShortageModal();
+    navigateToSection('ingredient-stock');
   }
 
   // --- INGREDIENT STOCK MANAGEMENT ---

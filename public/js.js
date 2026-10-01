@@ -701,6 +701,11 @@ window.google = {
     document.getElementById('chk-prod-test').checked = false;
     document.getElementById('batch-expected-sales').value = 0;
     toggleSalesProfitCard();
+    const chkAutoDeduct = document.getElementById('chk-auto-deduct-stock');
+    if (chkAutoDeduct) {
+      chkAutoDeduct.checked = true;
+      chkAutoDeduct.disabled = false;
+    }
     
     // Reset fm inputs
     document.getElementById('fm-water-per-tank').value = 80;
@@ -2350,11 +2355,34 @@ window.google = {
       Username: loggedInUsername
     };
 
+    const autoDeduct = document.getElementById('chk-auto-deduct-stock') && document.getElementById('chk-auto-deduct-stock').checked;
+
+    let wasStockDeducted = false;
+    let previousDeductedAt = null;
     if (editingBatchId) {
       const old = batches.find(b => b.ID === editingBatchId);
       if (old) {
         batchObj.CreatedAt = old.CreatedAt;
+        let oldRaw = typeof old.RawData === 'string' ? JSON.parse(old.RawData) : (old.RawData || {});
+        if (oldRaw.stockDeducted === true) {
+          wasStockDeducted = true;
+          previousDeductedAt = oldRaw.stockDeductedAt;
+        }
       }
+    }
+
+    const isWaitingStatus = (status === 'รอหมักสุรากลั่น' || status === 'รอหมักสุราแช่' || status === 'รอหมักสุราหมัก' || status.indexOf('รอหมัก') >= 0);
+    const shouldDeductOnSave = autoDeduct && !wasStockDeducted && !isWaitingStatus;
+
+    rawData.autoDeductStock = autoDeduct;
+    if (wasStockDeducted) {
+      rawData.stockDeducted = true;
+      rawData.stockDeductedAt = previousDeductedAt;
+    } else if (shouldDeductOnSave) {
+      rawData.stockDeducted = true;
+      rawData.stockDeductedAt = new Date().toISOString();
+    } else {
+      rawData.stockDeducted = false;
     }
 
     const isNewBatch = !editingBatchId;
@@ -2369,8 +2397,7 @@ window.google = {
       const statusVal = document.getElementById('batch-status').value;
 
       // 1. Auto Stock Deduction
-      const autoDeduct = document.getElementById('chk-auto-deduct-stock') && document.getElementById('chk-auto-deduct-stock').checked;
-      if (autoDeduct && isNewBatch && savedObj && savedObj.ID) {
+      if (shouldDeductOnSave && savedObj && savedObj.ID) {
         const allIngredientsToDeduct = [
           ...autoIngredients,
           ...collectedCustomIngredients,
@@ -2383,6 +2410,8 @@ window.google = {
             }
           }).deductBatchStock(savedObj.ID, savedObj.Title, allIngredientsToDeduct, loggedInUsername);
         }
+      } else if (autoDeduct && !wasStockDeducted && isWaitingStatus) {
+        showToast('บันทึกสูตรสุราแล้ว (สถานะรอหมัก - ระบบจะตัดสต๊อกอัตโนมัติเมื่อเริ่มหมัก)', 'info');
       }
 
       // 2. Telegram Alert
@@ -2485,6 +2514,16 @@ window.google = {
     document.getElementById('batch-distill-vol').value = raw.distillVolReal || 0;
     document.getElementById('batch-distill-degree').value = raw.distillDegreeReal || 40;
     document.getElementById('batch-pkg-cost').value = raw.pkgCost || 0;
+    const chkAutoDeduct = document.getElementById('chk-auto-deduct-stock');
+    if (chkAutoDeduct) {
+      if (raw.stockDeducted === true) {
+        chkAutoDeduct.checked = true;
+        chkAutoDeduct.disabled = true;
+      } else {
+        chkAutoDeduct.checked = (raw.autoDeductStock !== false);
+        chkAutoDeduct.disabled = false;
+      }
+    }
 
     // Load active formula values
     currentFormulaId = parseInt(batch.FormulaType) || 1;
@@ -3190,6 +3229,15 @@ window.google = {
                 🍷 QC: ${raw.sensoryData.qcDecision ? raw.sensoryData.qcDecision.split(' ')[0] : 'ประเมินแล้ว'}
               </span>
               ` : ''}
+              ${raw.stockDeducted ? `
+              <span class="badge" style="background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); font-size: 0.75rem;" title="ตัดสต๊อกวัตถุดิบอัตโนมัติแล้ว">
+                📦 ตัดสต๊อกแล้ว
+              </span>
+              ` : (batch.Status === 'รอหมักสุรากลั่น' || (batch.Status && batch.Status.indexOf('รอหมัก') >= 0)) ? `
+              <span class="badge" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); font-size: 0.75rem;" title="ยังไม่ตัดสต๊อก จะตัดอัตโนมัติเมื่อเปลี่ยนสถานะเป็นหมัก">
+                ⏳ รอตัดสต๊อกเมื่อหมัก
+              </span>
+              ` : ''}
               <span class="badge ${getStatusBadgeClass(batch.Status)}">${batch.Status}</span>
             </div>
           </div>
@@ -3321,16 +3369,49 @@ window.google = {
               distillVolReal = parseFloat(distillVolInput.value) || 0;
             }
 
-            showLoader('กำลังบันทึกข้อมูล...');
+            const currentBatch = batches.find(b => b.ID === id);
+            let raw = {};
+            try {
+              raw = currentBatch ? (typeof currentBatch.RawData === 'string' ? JSON.parse(currentBatch.RawData) : (currentBatch.RawData || {})) : {};
+            } catch(e) {
+              raw = {};
+            }
+
+            const isEnteringFermentation = (newStatus === 'หมักสุรากลั่น' || newStatus === 'หมักสุราแช่' || newStatus === 'หมักสุราหมัก' || newStatus === 'หมักสุรา') &&
+                                           (raw.stockDeducted !== true) &&
+                                           (raw.autoDeductStock !== false);
+
+            let extraRaw = null;
+            let ingredientsToDeduct = [];
+            if (isEnteringFermentation) {
+              extraRaw = {
+                stockDeducted: true,
+                stockDeductedAt: new Date().toISOString()
+              };
+              ingredientsToDeduct = [
+                ...(raw.autoIngredients || []),
+                ...(raw.customIngredients || []),
+                ...(raw.customAddons || [])
+              ];
+            }
+
+            showLoader(isEnteringFermentation ? 'กำลังบันทึกสถานะและตัดสต๊อกวัตถุดิบ...' : 'กำลังบันทึกข้อมูล...');
             google.script.run.withSuccessHandler(function(res) {
               showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
+              if (isEnteringFermentation && ingredientsToDeduct.length > 0) {
+                google.script.run.withSuccessHandler(function(deductRes) {
+                  if (deductRes && deductRes.deductedCount > 0) {
+                    showToast(`📦 ตัดสต๊อกวัตถุดิบอัตโนมัติ ${deductRes.deductedCount} รายการเรียบร้อยแล้ว (สถานะ: ${newStatus})`, 'info');
+                  }
+                }).deductBatchStock(id, (currentBatch ? currentBatch.Title : id), ingredientsToDeduct, loggedInUsername);
+              }
               sendTelegramStatusChangedAlert(id, newStatus, fermentationDays);
               autoSwitchSubTabAfterStatusUpdate(newStatus);
               fetchBatches(false);
             }).withFailureHandler(function(err) {
               hideLoader();
               showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (err.message || err.toString()), 'error');
-            }).updateBatchStatus(id, newStatus, fermentationDays, testResult, loggedInUsername, expectedSales, distillVolReal);
+            }).updateBatchStatus(id, newStatus, fermentationDays, testResult, loggedInUsername, expectedSales, distillVolReal, extraRaw);
           };
         }
 

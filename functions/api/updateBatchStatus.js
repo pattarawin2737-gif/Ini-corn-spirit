@@ -9,6 +9,7 @@ export async function onRequestPost(context) {
     const username = body.args && body.args[4];
     const expectedSales = body.args && body.args[5];
     const distillVolReal = body.args && body.args[6];
+    const extraRaw = body.args && body.args[7];
 
     if (!id) {
       return new Response(JSON.stringify(false), {
@@ -80,6 +81,13 @@ export async function onRequestPost(context) {
     }
     if (distillVolReal !== undefined && distillVolReal !== null && distillVolReal !== '') {
       rawObj.distillVolReal = parseFloat(distillVolReal) || 0;
+    }
+    if (extraRaw && typeof extraRaw === 'object') {
+      Object.assign(rawObj, extraRaw);
+    }
+    if (newStatus === 'หมักสุรากลั่น' && !rawObj.stockDeducted && rawObj.autoDeductStock !== false) {
+      rawObj.stockDeducted = true;
+      rawObj.stockDeductedAt = now;
     }
     rawObj.UpdatedAt = now;
 

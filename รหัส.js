@@ -237,7 +237,7 @@ function saveBatch(batchObj) {
 /**
  * Quick update batch status or fermentation days from the list view
  */
-function updateBatchStatus(id, newStatus, fermentationDays, testResult, username, expectedSales, distillVolReal) {
+function updateBatchStatus(id, newStatus, fermentationDays, testResult, username, expectedSales, distillVolReal, extraRaw) {
   try {
     var sheet = getOrCreateSheet('BatchData');
     var data = sheet.getDataRange().getValues();
@@ -325,6 +325,15 @@ function updateBatchStatus(id, newStatus, fermentationDays, testResult, username
             }
             if (distillVolReal !== undefined && distillVolReal !== null && distillVolReal !== '') {
               rawObj.distillVolReal = parseFloat(distillVolReal) || 0;
+            }
+            if (extraRaw && typeof extraRaw === 'object') {
+              for (var k in extraRaw) {
+                rawObj[k] = extraRaw[k];
+              }
+            }
+            if (newStatus === 'หมักสุรากลั่น' && !rawObj.stockDeducted && rawObj.autoDeductStock !== false) {
+              rawObj.stockDeducted = true;
+              rawObj.stockDeductedAt = new Date().toISOString();
             }
             rawObj.UpdatedAt = new Date().toISOString();
             rawCell.setValue(JSON.stringify(rawObj));

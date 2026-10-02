@@ -1426,8 +1426,9 @@ window.google = {
       const f5WaterTotal = f5LiqPerTank * enzTanks; 
       
       const f5RicePerTank = (f5LiqPerTank / f5Constant / 1.2) / 2; 
+      const f5CookedCornPerTank = f5RicePerTank;
       const f5StickyRice = f5RicePerTank / 1.53; 
-      const f5CornPerTank = f5RicePerTank * 0.85; 
+      const f5CornPerTank = f5CookedCornPerTank * 0.85; 
       const f5PlainRice = f5RicePerTank / 3;
       const f5SugarPerTank = (f5LiqPerTank - (f5LiqPerTank / f5Constant)) / 3; 
       const f5PreDeg = f5Sweet * 0.5; 
@@ -1441,6 +1442,8 @@ window.google = {
         waterTotal: f5WaterTotal,
         ricePerTank: f5RicePerTank,
         riceTotal: f5RicePerTank * enzTanks,
+        cookedCornPerTank: f5CookedCornPerTank,
+        cookedCornTotal: f5CookedCornPerTank * enzTanks,
         stickyRicePerTank: f5StickyRice,
         stickyRiceTotal: f5StickyRice * enzTanks,
         cornPerTank: f5CornPerTank,
@@ -1454,7 +1457,7 @@ window.google = {
         liqRem: f5LiqRem
       };
     } else if (currentFormulaId === 6) {
-      // 6. สูตรข้าว + ข้าวโพดป๊อปคอร์น
+      // 6. สูตรข้าว + ข้าวโพดป๊อปคอร์น (ข้าวเพิ่ม 25%, ข้าวโพดป๊อปคอร์นลด 25%)
       const f6Size = parseFloat(document.getElementById('f6-tank-size').value) || 0;
       const f6Pct = parseFloat(document.getElementById('f6-water-pct').value) || 0;
       const f6Sweet = parseFloat(document.getElementById('f6-sweetness').value) || 0;
@@ -1465,9 +1468,11 @@ window.google = {
       const f6LiqPerTank = f6Size * (f6Pct / 100); 
       const f6WaterTotal = f6LiqPerTank * enzTanks; 
       
-      const f6RicePerTank = (f6LiqPerTank / f6Constant / 1.2) / 2; 
+      const f6BaseHalfGrain = (f6LiqPerTank / f6Constant / 1.2) / 2;
+      const f6RicePerTank = f6BaseHalfGrain * 1.25; // ข้าวเพิ่ม 25%
+      const f6CookedCornPerTank = f6BaseHalfGrain * 0.75; // ข้าวโพดป๊อปคอร์นลด 25%
       const f6StickyRice = f6RicePerTank / 1.53; 
-      const f6CornPerTank = f6RicePerTank * 0.85; 
+      const f6CornPerTank = f6CookedCornPerTank * 0.85; 
       const f6PlainRice = f6RicePerTank / 3;
       const f6SugarPerTank = (f6LiqPerTank - (f6LiqPerTank / f6Constant)) / 3; 
       const f6PreDeg = f6Sweet * 0.5; 
@@ -1481,6 +1486,8 @@ window.google = {
         waterTotal: f6WaterTotal,
         ricePerTank: f6RicePerTank,
         riceTotal: f6RicePerTank * enzTanks,
+        cookedCornPerTank: f6CookedCornPerTank,
+        cookedCornTotal: f6CookedCornPerTank * enzTanks,
         stickyRicePerTank: f6StickyRice,
         stickyRiceTotal: f6StickyRice * enzTanks,
         cornPerTank: f6CornPerTank,
@@ -1617,7 +1624,7 @@ window.google = {
     } else if (currentFormulaId === 5) {
       document.getElementById('f5-water-per-tank-display').innerHTML = fo.waterPerTank.toFixed(1) + '<span>ลิตร (รวม: ' + fo.waterTotal.toFixed(1) + ')</span>';
       document.getElementById('f5-rice-per-tank-display').innerHTML = fo.ricePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.riceTotal.toFixed(1) + ')</span>';
-      document.getElementById('f5-cooked-corn-per-tank-display').innerHTML = fo.ricePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.riceTotal.toFixed(1) + ')</span>';
+      document.getElementById('f5-cooked-corn-per-tank-display').innerHTML = (fo.cookedCornPerTank || fo.ricePerTank).toFixed(1) + '<span>Kg (รวม: ' + (fo.cookedCornTotal || fo.riceTotal).toFixed(1) + ')</span>';
       document.getElementById('f5-sticky-rice-per-tank-display').innerHTML = fo.stickyRicePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.stickyRiceTotal.toFixed(1) + ')</span>';
       document.getElementById('f5-corn-per-tank-display').innerHTML = fo.cornPerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.cornTotal.toFixed(1) + ')</span>';
       document.getElementById('f5-plain-rice-per-tank-display').innerHTML = fo.plainRicePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.plainRiceTotal.toFixed(1) + ')</span>';
@@ -1628,7 +1635,7 @@ window.google = {
     } else if (currentFormulaId === 6) {
       document.getElementById('f6-water-per-tank-display').innerHTML = fo.waterPerTank.toFixed(1) + '<span>ลิตร (รวม: ' + fo.waterTotal.toFixed(1) + ')</span>';
       document.getElementById('f6-rice-per-tank-display').innerHTML = fo.ricePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.riceTotal.toFixed(1) + ')</span>';
-      document.getElementById('f6-cooked-corn-per-tank-display').innerHTML = fo.ricePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.riceTotal.toFixed(1) + ')</span>';
+      document.getElementById('f6-cooked-corn-per-tank-display').innerHTML = (fo.cookedCornPerTank || (fo.ricePerTank * 0.6)).toFixed(1) + '<span>Kg (รวม: ' + (fo.cookedCornTotal || (fo.riceTotal * 0.6)).toFixed(1) + ')</span>';
       document.getElementById('f6-sticky-rice-per-tank-display').innerHTML = fo.stickyRicePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.stickyRiceTotal.toFixed(1) + ')</span>';
       document.getElementById('f6-corn-per-tank-display').innerHTML = fo.cornPerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.cornTotal.toFixed(1) + ')</span>';
       document.getElementById('f6-plain-rice-per-tank-display').innerHTML = fo.plainRicePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.plainRiceTotal.toFixed(1) + ')</span>';
@@ -5635,14 +5642,19 @@ window.google = {
       const fConst = (fNum === 5 ? fi.f5TempSelect : fi.f6TempSelect) || 6;
       const fLiqPerTank = fSize * (fPct / 100);
       mainWaterPerTank = fLiqPerTank;
-      mainWaterTotal = mainWaterPerTank * tanks;
-      cookedRicePerTank = (fLiqPerTank / fConst / 1.2) / 2;
+      const halfGrain = (fLiqPerTank / fConst / 1.2) / 2;
+      if (fNum === 6) {
+        cookedRicePerTank = halfGrain * 1.25; // ข้าวเพิ่ม 25%
+        cookedCornPerTank = halfGrain * 0.75; // ข้าวโพดป๊อปคอร์นลด 25%
+      } else {
+        cookedRicePerTank = halfGrain;
+        cookedCornPerTank = halfGrain;
+      }
       cookedRiceTotal = cookedRicePerTank * tanks;
       rawRicePerTank = (cookedRicePerTank / 1.53) + (cookedRicePerTank / 3);
       rawRiceTotal = rawRicePerTank * tanks;
-      cookedCornPerTank = cookedRicePerTank;
       cookedCornTotal = cookedCornPerTank * tanks;
-      rawCornPerTank = cookedRicePerTank * 0.85;
+      rawCornPerTank = cookedCornPerTank * 0.85;
       rawCornTotal = rawCornPerTank * tanks;
       sugarPerTank = (fLiqPerTank - (fLiqPerTank / fConst)) / 3;
       sugarTotal = sugarPerTank * tanks;

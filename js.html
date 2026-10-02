@@ -1396,10 +1396,9 @@
       
       const f6LiqPerTank = f6Size * (f6Pct / 100); 
       const f6WaterTotal = f6LiqPerTank * enzTanks; 
-      
-      const f6BaseHalfGrain = (f6LiqPerTank / f6Constant / 1.2) / 2;
-      const f6RicePerTank = f6BaseHalfGrain * 1.25; // ข้าวเพิ่ม 25%
-      const f6CookedCornPerTank = f6BaseHalfGrain * 0.75; // ข้าวโพดป๊อปคอร์นลด 25%
+      const f6TotalGrain = (f6LiqPerTank / f6Constant / 1.2);
+      const f6RicePerTank = f6TotalGrain * 0.75; // ข้าว 75% (เดิม 50% + 25%)
+      const f6CookedCornPerTank = f6TotalGrain * 0.25; // ข้าวโพดป๊อปคอร์น 25% (เดิม 50% - 25%)
       const f6StickyRice = f6RicePerTank / 1.53; 
       const f6CornPerTank = f6CookedCornPerTank * 0.85; 
       const f6PlainRice = f6RicePerTank / 3;
@@ -5571,13 +5570,14 @@
       const fConst = (fNum === 5 ? fi.f5TempSelect : fi.f6TempSelect) || 6;
       const fLiqPerTank = fSize * (fPct / 100);
       mainWaterPerTank = fLiqPerTank;
-      const halfGrain = (fLiqPerTank / fConst / 1.2) / 2;
+      mainWaterTotal = mainWaterPerTank * tanks;
+      const totalGrain = (fLiqPerTank / fConst / 1.2);
       if (fNum === 6) {
-        cookedRicePerTank = halfGrain * 1.25; // ข้าวเพิ่ม 25%
-        cookedCornPerTank = halfGrain * 0.75; // ข้าวโพดป๊อปคอร์นลด 25%
+        cookedRicePerTank = totalGrain * 0.75; // ข้าว 75%
+        cookedCornPerTank = totalGrain * 0.25; // ข้าวโพดป๊อปคอร์น 25%
       } else {
-        cookedRicePerTank = halfGrain;
-        cookedCornPerTank = halfGrain;
+        cookedRicePerTank = totalGrain / 2;
+        cookedCornPerTank = totalGrain / 2;
       }
       cookedRiceTotal = cookedRicePerTank * tanks;
       rawRicePerTank = (cookedRicePerTank / 1.53) + (cookedRicePerTank / 3);

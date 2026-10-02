@@ -1396,12 +1396,18 @@
 
         <!-- 5. สูตรทำแอลกอฮอล์ / รายละเอียดวัตถุดิบ -->
         <div class="card" style="margin-top: 1.5rem;">
-          <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
             <span>รายละเอียดวัตถุดิบและต้นทุนการผลิตหลัก</span>
-            <button class="btn btn-secondary btn-sm" id="btn-add-ingredient" type="button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-              เพิ่มวัตถุดิบอื่นๆ
-            </button>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-secondary btn-sm" id="btn-recalc-ingredients" type="button" onclick="recalculateIngredientsFromFormula()" title="คำนวณปริมาณวัตถุดิบหลักใหม่ทั้งหมดตามจำนวนถังและสูตรปัจจุบัน">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.2" /></svg>
+                คำนวณใหม่ตามสูตร
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btn-add-ingredient" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                เพิ่มวัตถุดิบอื่นๆ
+              </button>
+            </div>
           </div>
 
           <div class="table-responsive">

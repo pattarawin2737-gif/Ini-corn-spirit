@@ -993,6 +993,7 @@ window.google = {
       switchSubTab('calc', 'correction');
     }
     toggleFermentationDaysRow();
+    runAllCalculations();
   }
 
   // Switch Fermentation Formula Tab (1-4)
@@ -1102,14 +1103,20 @@ window.google = {
 
   // CORE CALCULATION ENGINES
   function runAllCalculations() {
-    if (!editingBatchId) {
-      loadedAutoIngredients = null;
-    }
+    loadedAutoIngredients = null;
     const calcData = calculateValues();
     updateCalculationOutputs(calcData);
     populateRecalculatedIngredients(calcData);
     renderFormulaTables(3);
     renderFormulaTables(4);
+  }
+
+  function recalculateIngredientsFromFormula() {
+    loadedAutoIngredients = null;
+    const calcData = calculateValues();
+    updateCalculationOutputs(calcData);
+    populateRecalculatedIngredients(calcData);
+    showToast('คำนวณปริมาณวัตถุดิบและต้นทุนใหม่ตามสูตรและจำนวนถังเรียบร้อยแล้ว', 'success');
   }
 
   function calculateValues() {
@@ -1815,6 +1822,22 @@ window.google = {
     
     const type = document.getElementById('batch-type').value;
     
+    // Capture user-edited unit prices from current DOM rows before recalculating
+    const existingUnitPriceMap = new Map();
+    document.querySelectorAll('#ingredients-table tbody tr.auto-row').forEach(row => {
+      const nInput = row.querySelector('.auto-ingredient-name');
+      const qInput = row.querySelector('.auto-ingredient-qty');
+      const pInput = row.querySelector('.auto-ingredient-price');
+      if (nInput && qInput && pInput) {
+        const n = nInput.value.trim();
+        const q = parseFloat(qInput.value) || 0;
+        const p = parseFloat(pInput.value) || 0;
+        if (n && q > 0 && p >= 0) {
+          existingUnitPriceMap.set(n, p / q);
+        }
+      }
+    });
+
     // Core default ingredients
     let defaults = [];
     if (type === 'สุราหมัก') {
@@ -1889,6 +1912,17 @@ window.google = {
           }
         });
       }
+
+      // Preserve custom unit price if user had customized price and item is not in stock inventory
+      defaults.forEach(item => {
+        const stockItem = findStockItem(item.name);
+        const hasStockPrice = stockItem && parseFloat(stockItem.Price) > 0;
+        if (!hasStockPrice && existingUnitPriceMap.has(item.name)) {
+          const customUp = existingUnitPriceMap.get(item.name);
+          item.unitPrice = customUp;
+          item.price = item.qty * customUp;
+        }
+      });
     }
 
     // Filter out deleted default ingredients
@@ -1926,6 +1960,7 @@ window.google = {
 
     // 2. Render custom ingredients
     renderIngredientsList();
+    sumTotalCosts();
   }
 
   function updateAutoIngredient(index, field, value) {
@@ -2708,6 +2743,16 @@ window.google = {
 
     // Re-render ingredients now that deletedAutoIngredientNames is restored
     const calData = calculateValues();
+    if (loadedAutoIngredients && Array.isArray(loadedAutoIngredients) && loadedAutoIngredients.length > 0) {
+      const savedSod = loadedAutoIngredients.find(i => i.name && i.name.includes('โซเดียม'));
+      if (savedSod && calData.totalSodium > 0) {
+        const savedSodQty = parseFloat(savedSod.qty) || 0;
+        if (savedSodQty > 0 && Math.abs(calData.totalSodium - savedSodQty) > 5) {
+          // Mismatched tanks detected: recalculate table according to current batch tanks
+          loadedAutoIngredients = null;
+        }
+      }
+    }
     updateCalculationOutputs(calData);
     populateRecalculatedIngredients(calData);
 
@@ -5691,10 +5736,26 @@ window.google = {
     // Gather all saved ingredients from the batch's "รายละเอียดวัตถุดิบและต้นทุนการผลิตหลัก" table
     const savedIngredients = [];
     if (raw.autoIngredients && Array.isArray(raw.autoIngredients)) {
-      savedIngredients.push(...raw.autoIngredients);
+      savedIngredients.push(...raw.autoIngredients.map(item => ({ ...item })));
     }
     if (raw.customIngredients && Array.isArray(raw.customIngredients)) {
-      savedIngredients.push(...raw.customIngredients);
+      savedIngredients.push(...raw.customIngredients.map(item => ({ ...item })));
+    }
+
+    // Auto-normalize if saved ingredients were from a mismatched tank count (e.g. legacy bug)
+    const aSodRaw = savedIngredients.find(i => i.name && i.name.includes('โซเดียม'));
+    if (aSodRaw && parseFloat(aSodRaw.qty) > 0 && totalSodium > 0) {
+      const sodQty = parseFloat(aSodRaw.qty);
+      if (Math.abs(totalSodium - sodQty) > 5) {
+        const scaleRatio = totalSodium / sodQty;
+        if (scaleRatio > 0.1 && scaleRatio < 10) {
+          savedIngredients.forEach(item => {
+            if (item && item.qty !== undefined) {
+              item.qty = (parseFloat(item.qty) || 0) * scaleRatio;
+            }
+          });
+        }
+      }
     }
 
     const matchedSavedNames = new Set();

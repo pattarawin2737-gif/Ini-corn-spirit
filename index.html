@@ -755,9 +755,10 @@
             <div class="tab-buttons" id="formula-selector">
               <button class="tab-btn active" onclick="switchFormulaTab(1)">1. สูตรคำนวณข้าวหมัก</button>
               <button class="tab-btn" onclick="switchFormulaTab(2)">2. สูตรคำนวณข้าว+น้ำตาล</button>
-              <button class="tab-btn" onclick="switchFormulaTab(5)">3. สูตรคำนวณข้าว+ข้าวโพด+น้ำตาล</button>
-              <button class="tab-btn" onclick="switchFormulaTab(3)">4. สูตรคำนวณใส่น้ำผลไม้ + ข้าวหรือธัญพืช</button>
-              <button class="tab-btn" onclick="switchFormulaTab(4)">5. สูตรคำนวณใส่น้ำผลไม้</button>
+              <button class="tab-btn" onclick="switchFormulaTab(5)">3. สูตรคำนวณข้าว+ข้าวโพดหวาน</button>
+              <button class="tab-btn" onclick="switchFormulaTab(6)">4. สูตรคำนวณข้าว+ข้าวโพดป๊อปคอร์น</button>
+              <button class="tab-btn" onclick="switchFormulaTab(3)">5. สูตรคำนวณใส่น้ำผลไม้ + ข้าวหรือธัญพืช</button>
+              <button class="tab-btn" onclick="switchFormulaTab(4)">6. สูตรคำนวณใส่น้ำผลไม้</button>
             </div>
           </div>
 
@@ -905,7 +906,7 @@
             </div>
           </div>
 
-          <!-- FORMULA 5: ข้าว + ข้าวโพด + น้ำตาล -->
+          <!-- FORMULA 5: ข้าว + ข้าวโพดหวาน -->
           <div class="formula-pane" id="formula-5-pane" style="display:none;">
             <div class="grid-4">
               <div class="form-group">
@@ -958,11 +959,11 @@
                 <span class="output-val" id="f5-rice-per-tank-display">0.0<span>Kg (รวม: 0.0)</span></span>
               </div>
               <div class="output-box">
-                <span class="output-label">ข้าวโพดสุก ต่อ 1 ถัง</span>
+                <span class="output-label">ข้าวโพดหวานสุก ต่อ 1 ถัง</span>
                 <span class="output-val" id="f5-cooked-corn-per-tank-display">0.0<span>Kg (รวม: 0.0)</span></span>
               </div>
               <div class="output-box">
-                <span class="output-label">ข้าวโพดดิบ ต่อ 1 ถัง</span>
+                <span class="output-label">ข้าวโพดหวานดิบ ต่อ 1 ถัง</span>
                 <span class="output-val" id="f5-corn-per-tank-display">0.0<span>Kg (รวม: 0.0)</span></span>
               </div>
               <div class="output-box">
@@ -987,6 +988,92 @@
               <div class="output-box success">
                 <span class="output-label">น้ำเหล้าเย็นลง 15% / คงเหลือ</span>
                 <span class="output-val" id="f5-liq-rem-display">0.0 / 0.0<span>ลิตร</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- FORMULA 6: ข้าว + ข้าวโพดป๊อปคอร์น -->
+          <div class="formula-pane" id="formula-6-pane" style="display:none;">
+            <div class="grid-4">
+              <div class="form-group">
+                <label for="f6-tank-size">ขนาดถังบรรจุต่อ 1 ถัง (ลิตร)</label>
+                <input type="number" class="input-control calc-trigger" id="f6-tank-size" value="20">
+              </div>
+              <div class="form-group">
+                <label for="f6-water-pct">ใส่น้ำในถังกี่%</label>
+                <input type="number" class="input-control calc-trigger" id="f6-water-pct" value="60">
+              </div>
+              <div class="form-group">
+                <label for="f6-temp-select">เลือกช่วงอุณหภูมิใช้งาน</label>
+                <select class="input-control calc-trigger" id="f6-temp-select">
+                  <option value="6">25°C ขึ้นไป (ค่าคงที่ = 6)</option>
+                  <option value="5">22°C ลงไป (ค่าคงที่ = 5)</option>
+                  <option value="4">20°C ลงไป (ค่าคงที่ = 4)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="f6-sweetness">ค่าความหวานก่อนหมักที่วัดได้ (Bx)</label>
+                <input type="number" class="input-control calc-trigger" id="f6-sweetness" value="28">
+              </div>
+            </div>
+            
+            <div class="grid-3">
+              <div class="form-group">
+                <label for="f6-distill-yield">เครื่องกลั่นที่กลั่นเหล้าได้กี่%</label>
+                <input type="number" class="input-control calc-trigger" id="f6-distill-yield" value="0.65">
+              </div>
+              <div class="form-group">
+                <label for="f6-target-degree">ดีกรีที่จะทำ (ดีกรี)</label>
+                <input type="number" class="input-control calc-trigger" id="f6-target-degree" value="40">
+              </div>
+              <div class="form-group">
+                <label>ข้อกำหนดวัตถุดิบ</label>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                  ข้าวสุก 1 Kg ใส่น้ำ 1.2 ลิตร | น้ำตาล 1 Kg ใส่น้ำ 3 ลิตร<br>
+                  มาตรฐานคือ 28 Bx = 14 ดีกรี
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-7" style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 1rem;">
+              <div class="output-box">
+                <span class="output-label">ปริมาณน้ำที่ใช้ต่อ 1 ถัง</span>
+                <span class="output-val" id="f6-water-per-tank-display">0.0<span>ลิตร (รวม: 0.0)</span></span>
+              </div>
+              <div class="output-box">
+                <span class="output-label">ข้าวสุก ต่อ 1 ถัง</span>
+                <span class="output-val" id="f6-rice-per-tank-display">0.0<span>Kg (รวม: 0.0)</span></span>
+              </div>
+              <div class="output-box">
+                <span class="output-label">ข้าวโพดป๊อปคอร์นสุก ต่อ 1 ถัง</span>
+                <span class="output-val" id="f6-cooked-corn-per-tank-display">0.0<span>Kg (รวม: 0.0)</span></span>
+              </div>
+              <div class="output-box">
+                <span class="output-label">ข้าวโพดป๊อปคอร์นดิบ ต่อ 1 ถัง</span>
+                <span class="output-val" id="f6-corn-per-tank-display">0.0<span>Kg (รวม: 0.0)</span></span>
+              </div>
+              <div class="output-box">
+                <span class="output-label">ข้าวเหนียว กข6 ต่อ 1 ถัง</span>
+                <span class="output-val" id="f6-sticky-rice-per-tank-display">0.0<span>Kg (รวม: 0.0)</span></span>
+              </div>
+              <div class="output-box">
+                <span class="output-label">ข้าวหอมมะลิ ต่อ 1 ถัง</span>
+                <span class="output-val" id="f6-plain-rice-per-tank-display">0.0<span>Kg (รวม: 0.0)</span></span>
+              </div>
+              <div class="output-box">
+                <span class="output-label">น้ำตาล ต่อ 1 ถัง</span>
+                <span class="output-val" id="f6-sugar-per-tank-display">0.0<span>Kg (รวม: 0.0)</span></span>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="output-box success">
+                <span class="output-label">น้ำเหล้าที่จะได้ (ลิตร)</span>
+                <span class="output-val" id="f6-liq-got-display">0.0<span>ลิตร</span></span>
+              </div>
+              <div class="output-box success">
+                <span class="output-label">น้ำเหล้าเย็นลง 15% / คงเหลือ</span>
+                <span class="output-val" id="f6-liq-rem-display">0.0 / 0.0<span>ลิตร</span></span>
               </div>
             </div>
           </div>

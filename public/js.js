@@ -1141,6 +1141,10 @@ window.google = {
       const f5Size = parseFloat(document.getElementById('f5-tank-size').value) || 0;
       const f5Pct = parseFloat(document.getElementById('f5-water-pct').value) || 0;
       waterPerTank = f5Size * (f5Pct / 100);
+    } else if (currentFormulaId === 6) {
+      const f6Size = parseFloat(document.getElementById('f6-tank-size').value) || 0;
+      const f6Pct = parseFloat(document.getElementById('f6-water-pct').value) || 0;
+      waterPerTank = f6Size * (f6Pct / 100);
     }
     
     if (waterPerTank < 0) waterPerTank = 0;
@@ -1410,7 +1414,7 @@ window.google = {
         liqRem: f4LiqRem
       };
     } else if (currentFormulaId === 5) {
-      // 5. สูตรข้าว + ข้าวโพด + น้ำตาล
+      // 5. สูตรข้าว + ข้าวโพดหวาน
       const f5Size = parseFloat(document.getElementById('f5-tank-size').value) || 0;
       const f5Pct = parseFloat(document.getElementById('f5-water-pct').value) || 0;
       const f5Sweet = parseFloat(document.getElementById('f5-sweetness').value) || 0;
@@ -1448,6 +1452,46 @@ window.google = {
         liqGot: f5LiqGot,
         liqLost: f5LiqLost,
         liqRem: f5LiqRem
+      };
+    } else if (currentFormulaId === 6) {
+      // 6. สูตรข้าว + ข้าวโพดป๊อปคอร์น
+      const f6Size = parseFloat(document.getElementById('f6-tank-size').value) || 0;
+      const f6Pct = parseFloat(document.getElementById('f6-water-pct').value) || 0;
+      const f6Sweet = parseFloat(document.getElementById('f6-sweetness').value) || 0;
+      const f6Constant = parseFloat(document.getElementById('f6-temp-select').value) || 6;
+      const f6DistillYield = parseFloat(document.getElementById('f6-distill-yield').value) || 0;
+      const f6TargetDeg = parseFloat(document.getElementById('f6-target-degree').value) || 1;
+      
+      const f6LiqPerTank = f6Size * (f6Pct / 100); 
+      const f6WaterTotal = f6LiqPerTank * enzTanks; 
+      
+      const f6RicePerTank = (f6LiqPerTank / f6Constant / 1.2) / 2; 
+      const f6StickyRice = f6RicePerTank / 1.53; 
+      const f6CornPerTank = f6RicePerTank * 0.85; 
+      const f6PlainRice = f6RicePerTank / 3;
+      const f6SugarPerTank = (f6LiqPerTank - (f6LiqPerTank / f6Constant)) / 3; 
+      const f6PreDeg = f6Sweet * 0.5; 
+      
+      const f6LiqGot = (f6WaterTotal * f6PreDeg * f6DistillYield) / f6TargetDeg; 
+      const f6LiqLost = f6LiqGot * 0.15; 
+      const f6LiqRem = f6LiqGot - f6LiqLost; 
+      
+      fOutputs = {
+        waterPerTank: f6LiqPerTank,
+        waterTotal: f6WaterTotal,
+        ricePerTank: f6RicePerTank,
+        riceTotal: f6RicePerTank * enzTanks,
+        stickyRicePerTank: f6StickyRice,
+        stickyRiceTotal: f6StickyRice * enzTanks,
+        cornPerTank: f6CornPerTank,
+        cornTotal: f6CornPerTank * enzTanks,
+        plainRicePerTank: f6PlainRice,
+        plainRiceTotal: f6PlainRice * enzTanks,
+        sugarPerTank: f6SugarPerTank,
+        sugarTotal: f6SugarPerTank * enzTanks,
+        liqGot: f6LiqGot,
+        liqLost: f6LiqLost,
+        liqRem: f6LiqRem
       };
     }
 
@@ -1580,6 +1624,17 @@ window.google = {
       document.getElementById('f5-sugar-per-tank-display').innerHTML = fo.sugarPerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.sugarTotal.toFixed(1) + ')</span>';
       document.getElementById('f5-liq-got-display').innerHTML = fo.liqGot.toFixed(1) + '<span>ลิตร</span>';
       document.getElementById('f5-liq-rem-display').innerHTML = fo.liqLost.toFixed(1) + ' / ' + fo.liqRem.toFixed(1) + '<span>ลิตร</span>';
+
+    } else if (currentFormulaId === 6) {
+      document.getElementById('f6-water-per-tank-display').innerHTML = fo.waterPerTank.toFixed(1) + '<span>ลิตร (รวม: ' + fo.waterTotal.toFixed(1) + ')</span>';
+      document.getElementById('f6-rice-per-tank-display').innerHTML = fo.ricePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.riceTotal.toFixed(1) + ')</span>';
+      document.getElementById('f6-cooked-corn-per-tank-display').innerHTML = fo.ricePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.riceTotal.toFixed(1) + ')</span>';
+      document.getElementById('f6-sticky-rice-per-tank-display').innerHTML = fo.stickyRicePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.stickyRiceTotal.toFixed(1) + ')</span>';
+      document.getElementById('f6-corn-per-tank-display').innerHTML = fo.cornPerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.cornTotal.toFixed(1) + ')</span>';
+      document.getElementById('f6-plain-rice-per-tank-display').innerHTML = fo.plainRicePerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.plainRiceTotal.toFixed(1) + ')</span>';
+      document.getElementById('f6-sugar-per-tank-display').innerHTML = fo.sugarPerTank.toFixed(1) + '<span>Kg (รวม: ' + fo.sugarTotal.toFixed(1) + ')</span>';
+      document.getElementById('f6-liq-got-display').innerHTML = fo.liqGot.toFixed(1) + '<span>ลิตร</span>';
+      document.getElementById('f6-liq-rem-display').innerHTML = fo.liqLost.toFixed(1) + ' / ' + fo.liqRem.toFixed(1) + '<span>ลิตร</span>';
 
     } else if (currentFormulaId === 3) {
       document.getElementById('f3-juice-per-tank-display').innerHTML = fo.juicePerTank.toFixed(1) + '<span>ลิตร (รวม: ' + fo.juiceTotal.toFixed(1) + ')</span>';
@@ -1788,15 +1843,20 @@ window.google = {
       if (currentFormulaId === 5) {
         const stickyRes = resolveIngredientPrice('ข้าวเหนียว กข6', fo.stickyRiceTotal || 0, 'Kg', 0, 0);
         const sweetCornRes = resolveIngredientPrice('ข้าวโพดหวาน', fo.cornTotal || 0, 'Kg', 24, (fo.cornTotal || 0) * 24);
-        const popCornRes = resolveIngredientPrice('ข้าวโพดป๊อปคอร์น', fo.cornTotal || 0, 'Kg', 48, (fo.cornTotal || 0) * 48);
         const plainRes = resolveIngredientPrice('ข้าวหอมมะลิ', fo.plainRiceTotal || 0, 'Kg', 18, (fo.plainRiceTotal || 0) * 18);
         defaults.push({ name: 'ข้าวเหนียว กข6', qty: fo.stickyRiceTotal || 0, unit: 'Kg', price: stickyRes.price, unitPrice: stickyRes.unitPrice });
         defaults.push({ name: 'ข้าวโพดหวาน', qty: fo.cornTotal || 0, unit: 'Kg', price: sweetCornRes.price, unitPrice: sweetCornRes.unitPrice });
+        defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: plainRes.price, unitPrice: plainRes.unitPrice });
+      } else if (currentFormulaId === 6) {
+        const stickyRes = resolveIngredientPrice('ข้าวเหนียว กข6', fo.stickyRiceTotal || 0, 'Kg', 0, 0);
+        const popCornRes = resolveIngredientPrice('ข้าวโพดป๊อปคอร์น', fo.cornTotal || 0, 'Kg', 48, (fo.cornTotal || 0) * 48);
+        const plainRes = resolveIngredientPrice('ข้าวหอมมะลิ', fo.plainRiceTotal || 0, 'Kg', 18, (fo.plainRiceTotal || 0) * 18);
+        defaults.push({ name: 'ข้าวเหนียว กข6', qty: fo.stickyRiceTotal || 0, unit: 'Kg', price: stickyRes.price, unitPrice: stickyRes.unitPrice });
         defaults.push({ name: 'ข้าวโพดป๊อปคอร์น', qty: fo.cornTotal || 0, unit: 'Kg', price: popCornRes.price, unitPrice: popCornRes.unitPrice });
         defaults.push({ name: 'ข้าวหอมมะลิ', qty: fo.plainRiceTotal || 0, unit: 'Kg', price: plainRes.price, unitPrice: plainRes.unitPrice });
       }
 
-      if (currentFormulaId === 2 || currentFormulaId === 3 || currentFormulaId === 4 || currentFormulaId === 5) {
+      if (currentFormulaId === 2 || currentFormulaId === 3 || currentFormulaId === 4 || currentFormulaId === 5 || currentFormulaId === 6) {
         const sugarRes = resolveIngredientPrice('น้ำตาลทรายแดง', fo.sugarTotal || 0, 'Kg', 28, (fo.sugarTotal || 0) * 28);
         defaults.push({ name: 'น้ำตาลทรายแดง', qty: fo.sugarTotal || 0, unit: 'Kg', price: sugarRes.price, unitPrice: sugarRes.unitPrice });
       }
@@ -2163,6 +2223,13 @@ window.google = {
       formulaInputs.f5Sweetness = parseFloat(document.getElementById('f5-sweetness').value);
       formulaInputs.f5DistillYield = parseFloat(document.getElementById('f5-distill-yield').value);
       formulaInputs.f5TargetDegree = parseFloat(document.getElementById('f5-target-degree').value);
+    } else if (currentFormulaId === 6) {
+      formulaInputs.f6TankSize = parseFloat(document.getElementById('f6-tank-size').value);
+      formulaInputs.f6WaterPct = parseFloat(document.getElementById('f6-water-pct').value);
+      formulaInputs.f6TempSelect = parseFloat(document.getElementById('f6-temp-select').value);
+      formulaInputs.f6Sweetness = parseFloat(document.getElementById('f6-sweetness').value);
+      formulaInputs.f6DistillYield = parseFloat(document.getElementById('f6-distill-yield').value);
+      formulaInputs.f6TargetDegree = parseFloat(document.getElementById('f6-target-degree').value);
     } else if (currentFormulaId === 3) {
       formulaInputs.f3TankSize = parseFloat(document.getElementById('f3-tank-size').value);
       formulaInputs.f3WaterPct = parseFloat(document.getElementById('f3-water-pct').value);
@@ -2575,6 +2642,13 @@ window.google = {
       document.getElementById('f5-sweetness').value = fi.f5Sweetness || 28;
       document.getElementById('f5-distill-yield').value = fi.f5DistillYield || 0.65;
       document.getElementById('f5-target-degree').value = fi.f5TargetDegree || 40;
+    } else if (currentFormulaId === 6) {
+      document.getElementById('f6-tank-size').value = fi.f6TankSize || 20;
+      document.getElementById('f6-water-pct').value = fi.f6WaterPct || 60;
+      document.getElementById('f6-temp-select').value = fi.f6TempSelect || 6;
+      document.getElementById('f6-sweetness').value = fi.f6Sweetness || 28;
+      document.getElementById('f6-distill-yield').value = fi.f6DistillYield || 0.65;
+      document.getElementById('f6-target-degree').value = fi.f6TargetDegree || 40;
     } else if (currentFormulaId === 3) {
       document.getElementById('f3-tank-size').value = fi.f3TankSize || 20;
       document.getElementById('f3-water-pct').value = fi.f3WaterPct || 60;
@@ -2958,9 +3032,10 @@ window.google = {
         const formulas = {
           '1': 'สูตรคำนวณข้าวหมัก',
           '2': 'สูตรคำนวณข้าว+น้ำตาล',
-          '5': 'สูตรคำนวณข้าว+ข้าวโพด+น้ำตาล',
-          '3': 'สูตรคำนวณใส่น้ำผลไม้+ข้าว',
-          '4': 'สูตรคำนวณใส่น้ำผลไม้ล้วน'
+          '5': 'สูตรคำนวณข้าว+ข้าวโพดหวาน',
+          '6': 'สูตรคำนวณข้าว+ข้าวโพดป๊อปคอร์น',
+          '3': 'สูตรคำนวณใส่น้ำผลไม้ + ข้าวหรือธัญพืช',
+          '4': 'สูตรคำนวณใส่น้ำผลไม้'
         };
         const formulaTitle = typeFilter === 'โซดา'
           ? 'สูตรคำนวณคราฟต์โซดาทำมือ'
@@ -5449,7 +5524,7 @@ window.google = {
       if (tagTargetEl) tagTargetEl.textContent = `${raw.brix || 0} → ${raw.brixFinal || 0} Brix`;
     } else {
       const fNum = parseInt(batch.FormulaType) || 1;
-      const fNames = { 1: 'สูตรที่ 1: ข้าวเหนียวดั้งเดิม', 2: 'สูตรที่ 2: น้ำตาล+ข้าว', 3: 'สูตรที่ 3: ผลไม้หลัก', 4: 'สูตรที่ 4: น้ำผลไม้ล้วน', 5: 'สูตรที่ 5: ข้าวโพด' };
+      const fNames = { 1: 'สูตรที่ 1: ข้าวเหนียวดั้งเดิม', 2: 'สูตรที่ 2: น้ำตาล+ข้าว', 5: 'สูตรที่ 3: ข้าวโพดหวาน', 6: 'สูตรที่ 4: ข้าวโพดป๊อปคอร์น', 3: 'สูตรที่ 5: ผลไม้หลัก', 4: 'สูตรที่ 6: น้ำผลไม้ล้วน' };
       formulaName = fNames[fNum] || `สูตรที่ ${fNum}`;
       const targetDeg = raw.adjTargetDeg || (raw.formulaInputs && raw.formulaInputs.f1TargetDegree) || 40;
       if (tagTargetEl) tagTargetEl.textContent = `${targetDeg}° (${raw.distillVolReal || 0} ลิตร)`;
@@ -5485,6 +5560,8 @@ window.google = {
         waterPerTank = (fi.f2TankSize || 20) * ((fi.f2WaterPct !== undefined ? fi.f2WaterPct : 60) / 100);
       } else if (fNum === 5) {
         waterPerTank = (fi.f5TankSize || 20) * ((fi.f5WaterPct !== undefined ? fi.f5WaterPct : 60) / 100);
+      } else if (fNum === 6) {
+        waterPerTank = (fi.f6TankSize || 20) * ((fi.f6WaterPct !== undefined ? fi.f6WaterPct : 60) / 100);
       } else if (fNum === 3) {
         waterPerTank = (fi.f3TankSize || 20) * ((fi.f3WaterPct !== undefined ? fi.f3WaterPct : 60) / 100);
       } else if (fNum === 4) {
@@ -5552,14 +5629,14 @@ window.google = {
       rawRiceTotal = rawRicePerTank * tanks;
       sugarPerTank = (f2LiqPerTank - (f2LiqPerTank / f2Const)) / 3;
       sugarTotal = sugarPerTank * tanks;
-    } else if (fNum === 5) {
-      const f5Size = fi.f5TankSize || 20;
-      const f5Pct = fi.f5WaterPct !== undefined ? fi.f5WaterPct : 60;
-      const f5Const = fi.f5TempSelect || 6;
-      const f5LiqPerTank = f5Size * (f5Pct / 100);
-      mainWaterPerTank = f5LiqPerTank;
+    } else if (fNum === 5 || fNum === 6) {
+      const fSize = (fNum === 5 ? fi.f5TankSize : fi.f6TankSize) || 20;
+      const fPct = (fNum === 5 ? fi.f5WaterPct : fi.f6WaterPct) !== undefined ? (fNum === 5 ? fi.f5WaterPct : fi.f6WaterPct) : 60;
+      const fConst = (fNum === 5 ? fi.f5TempSelect : fi.f6TempSelect) || 6;
+      const fLiqPerTank = fSize * (fPct / 100);
+      mainWaterPerTank = fLiqPerTank;
       mainWaterTotal = mainWaterPerTank * tanks;
-      cookedRicePerTank = (f5LiqPerTank / f5Const / 1.2) / 2;
+      cookedRicePerTank = (fLiqPerTank / fConst / 1.2) / 2;
       cookedRiceTotal = cookedRicePerTank * tanks;
       rawRicePerTank = (cookedRicePerTank / 1.53) + (cookedRicePerTank / 3);
       rawRiceTotal = rawRicePerTank * tanks;
@@ -5567,7 +5644,7 @@ window.google = {
       cookedCornTotal = cookedCornPerTank * tanks;
       rawCornPerTank = cookedRicePerTank * 0.85;
       rawCornTotal = rawCornPerTank * tanks;
-      sugarPerTank = (f5LiqPerTank - (f5LiqPerTank / f5Const)) / 3;
+      sugarPerTank = (fLiqPerTank - (fLiqPerTank / fConst)) / 3;
       sugarTotal = sugarPerTank * tanks;
     } else if (fNum === 3) {
       const f3Size = fi.f3TankSize || 20;
@@ -5657,7 +5734,7 @@ window.google = {
 
     // Fallback if no saved rice items found in table, compute from formula calculation
     if (rawRiceItems.length === 0) {
-      if (fNum === 1 || fNum === 2 || fNum === 3 || fNum === 5) {
+      if (fNum === 1 || fNum === 2 || fNum === 3 || fNum === 5 || fNum === 6) {
         const stickyQ = (cookedRiceTotal / 1.53);
         const plainQ = (cookedRiceTotal / 3);
         if (stickyQ > 0.001) {
@@ -5684,7 +5761,8 @@ window.google = {
       }
     });
     if (rawCornItems.length === 0 && rawCornTotal > 0.001) {
-      rawCornItems.push({ name: 'ข้าวโพดดิบ', perTank: rawCornPerTank, total: rawCornTotal, unit: 'Kg' });
+      const defaultCornName = fNum === 6 ? 'ข้าวโพดดิบ (ข้าวโพดป๊อปคอร์น)' : (fNum === 5 ? 'ข้าวโพดดิบ (ข้าวโพดหวาน)' : 'ข้าวโพดดิบ');
+      rawCornItems.push({ name: defaultCornName, perTank: rawCornPerTank, total: rawCornTotal, unit: 'Kg' });
     }
 
     // Enzyme prep calculations
@@ -5726,7 +5804,7 @@ window.google = {
 
       // 6. ข้าวโพดสุก
       if (cookedCornTotal > 0.001) {
-        mainItems.push({ name: 'ข้าวโพดสุก', perTank: cookedCornPerTank, total: cookedCornTotal, unit: 'Kg' });
+        mainItems.push({ name: (fNum === 6 ? 'ข้าวโพดป๊อปคอร์นสุก' : (fNum === 5 ? 'ข้าวโพดหวานสุก' : 'ข้าวโพดสุก')), perTank: cookedCornPerTank, total: cookedCornTotal, unit: 'Kg' });
       }
 
       // 7. น้ำตาลทรายแดง
